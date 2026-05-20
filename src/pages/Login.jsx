@@ -36,10 +36,74 @@ export default function Login() {
         if (err) throw err
       } catch (err) {
         setError(err.message ?? 'Invalid email or password')
+      } finally {
+        setBusy(false)
       }
 
 
     }
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+        <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+          <div className="mb-6 text-center">
+            <div className="inline-flex items-center gap-2 text-teal-700">
+              <Activity className ="h-6 w-6" />
+              <span className="text-lg font-bold">TBTrack</span>
+              <h1 className="mt-3 text-xl font-semibold text-gray-900">Sign in</h1>
+              <p className="mt-1 text-sm text-gray-500">Hospital Staff and patients</p>
+            </div>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600" htmlFor="email">Email</label>
+                <input id="email"
+                type="email"
+                required
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none ring-teal-600 focus:ring-2"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                />
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-600" htmlFor="password">
+                    Password
+                  </label>
+                  <input 
+                  id="password"
+                  type="password"
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none ring-teal-600 focus:ring-2"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  />
+                </div>
+                {error && (
+                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
+
+                )}
+                <button 
+                type="submit"
+                disabled= {busy}
+                className="w-full rounded-lg bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+                >
+                  {busy ? 'Signing in...' : 'Sign in'}
+
+                </button>
+
+
+
+
+              </div>
+
+            </form>
+            <p className="mt-6 text-center text-xs text-gray-400">
+              Accounts are created by clinic administrators
+            </p>
+          </div>
+        </div>
+      </div>
+    )
 
 
 }    
