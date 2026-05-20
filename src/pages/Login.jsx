@@ -47,15 +47,15 @@ export default function Login() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           <div className="mb-6 text-center">
-            <div className="inline-flex items-center gap-2 text-teal-700">
+            <div className="display-flex items-center gap-2 text-teal-700">
               <Activity className ="h-6 w-6" />
-              <span className="text-lg font-bold">TBTrack</span>
+              <span className="text-xl font-bold">TBTrack</span>
               <h1 className="mt-3 text-xl font-semibold text-gray-900">Sign in</h1>
-              <p className="mt-1 text-sm text-gray-500">Hospital Staff and patients</p>
+              
             </div>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600" htmlFor="email">Email</label>
+                <label className="mb-2 mt-2 block text-xs font-medium text-gray-600" htmlFor="email">Email</label>
                 <input id="email"
                 type="email"
                 required
@@ -65,14 +65,14 @@ export default function Login() {
                 autoComplete="email"
                 />
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600" htmlFor="password">
+                  <label className="mb-2 mt-2 block text-xs font-medium text-gray-600" htmlFor="password">
                     Password
                   </label>
                   <input 
                   id="password"
                   type="password"
                   required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none ring-teal-600 focus:ring-2"
+                  className="w-full mb-4 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none ring-teal-600 focus:ring-2"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
