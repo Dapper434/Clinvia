@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../utils/supabaseClient.js'
-import { useAuth } from '../context/AuthContext.jsx'
+import { useAuth } from '../context/useAuth.js'
 import {
   calcAdherence,
   daysRemainingInTreatment,
@@ -50,9 +50,11 @@ export default function PatientProfile() {
     setContacts(cRows ?? [])
   }, [id])
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     reload()
   }, [reload])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const adherence = patient ? calcAdherence(doseLogs, patient.treatment_start) : 0
   const risk = getRiskLevel(adherence)

@@ -1,4 +1,4 @@
-import { useAuth } from '../../context/AuthContext.jsx'
+import { useAuth } from '../../context/useAuth.js'
 import { roleLabel } from '../../utils/roles.js'
 
 export default function Topbar({ title }) {

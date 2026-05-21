@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { Pill, LogOut } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext.jsx'
+import { useAuth } from '../../context/useAuth.js'
 
 const linkClass = ({ isActive }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
