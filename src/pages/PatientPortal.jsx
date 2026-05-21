@@ -12,7 +12,6 @@ import { ensurePatientRecord } from '../utils/patientRecord.js'
 import AdherenceCalendar from '../components/patients/AdherenceCalendar.jsx'
 import DoseToggle from '../components/patients/DoseToggle.jsx'
 import StatusBadge from '../components/patients/StatusBadge.jsx'
-import LinkHospitalRecord from '../components/patients/LinkHospitalRecord.jsx'
 
 export default function PatientPortal() {
   const { user, profile, patientId, refreshPatientId } = useAuth()
@@ -142,7 +141,7 @@ export default function PatientPortal() {
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">{message}</div>
       ) : null}
 
-      {!patient.registered_by ? <LinkHospitalRecord onLinked={reload} /> : null}
+      
 
       <div className="rounded-xl border border-teal-200 bg-teal-50 p-5">
         <h3 className="text-sm font-semibold text-teal-900">Today&apos;s dose · {today}</h3>
