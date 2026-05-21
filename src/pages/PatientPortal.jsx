@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../utils/supabaseClient.js'
-import { useAuth } from '../context/AuthContext.jsx'
+import { useAuth } from '../context/useAuth.js'
 import {
   calcAdherence,
   daysRemainingInTreatment,
@@ -72,9 +72,11 @@ export default function PatientPortal() {
     setLoading(false)
   }, [user, patientId, profile, refreshPatientId])
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     reload()
   }, [reload])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function saveTodayDose() {
     if (!patient || !user || todayTaken === null) return

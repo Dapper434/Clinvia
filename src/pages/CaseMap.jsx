@@ -37,17 +37,13 @@ function markerColor(patient, adherence, ltfu) {
 }
 
 export default function CaseMap() {
-  const [mounted, setMounted] = useState(false)
+  const mounted = true
   const [patients, setPatients] = useState([])
   const [facilities, setFacilities] = useState([])
   const [doseLogs, setDoseLogs] = useState([])
   const [filter, setFilter] = useState('active')
   const [showFacilities, setShowFacilities] = useState(false)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     let cancelled = false

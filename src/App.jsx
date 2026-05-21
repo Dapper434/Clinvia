@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from './context/AuthContext.jsx'
+import { useAuth } from './context/useAuth.js'
 import HospitalRoute from './components/layout/HospitalRoute.jsx'
 import PatientRoute from './components/layout/PatientRoute.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'

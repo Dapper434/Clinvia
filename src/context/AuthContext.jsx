@@ -1,11 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../utils/supabaseClient.js'
 import { isHospitalRole, isPatientRole } from '../utils/roles.js'
 import { ensurePatientRecord, linkPatientRecord } from '../utils/patientRecord.js'
 
 const AuthContext = createContext(null)
 
-export function AuthProvider({ children }) {
+export { AuthContext }
+
+export default function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [patientId, setPatientId] = useState(null)
@@ -137,10 +139,4 @@ export function AuthProvider({ children }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
 }

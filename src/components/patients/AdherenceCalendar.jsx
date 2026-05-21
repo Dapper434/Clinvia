@@ -19,8 +19,8 @@ export default function AdherenceCalendar({ treatmentStart, doseLogs, subtitle }
     const key = format(d, 'yyyy-MM-dd')
     const future = isAfter(d, today)
     const beforeStart = isBefore(d, start)
-    let tone = 'bg-gray-100 border-gray-200'
-    let label = 'No log'
+    let tone
+    let label
     if (beforeStart) {
       tone = 'bg-gray-50 border-gray-100'
       label = '—'
