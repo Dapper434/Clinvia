@@ -5,8 +5,6 @@ import PatientRoute from './components/layout/PatientRoute.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import PatientLayout from './components/layout/PatientLayout.jsx'
 import Login from './pages/Login.jsx'
-import HospitalLogin from './pages/HospitalLogin.jsx'
-import PatientLogin from './pages/PatientLogin.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Patients from './pages/Patients.jsx'
 import PatientForm from './components/patients/PatientForm.jsx'
@@ -34,8 +32,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/login/hospital" element={<HospitalLogin />} />
-      <Route path="/login/patient" element={<PatientLogin />} />
+
 
       <Route element={<PatientRoute />}>
         <Route element={<PatientLayout />}>
