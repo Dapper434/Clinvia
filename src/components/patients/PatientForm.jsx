@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../utils/supabaseClient.js'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { Copy, Check, UserPlus } from 'lucide-react'
+import { Copy, Check, UserPlus, Eye, EyeOff } from 'lucide-react'
 
 const empty = {
   name: '',
@@ -18,23 +18,8 @@ const empty = {
   mdr_flag: false,
   lat: '',
   lng: '',
-}
-
-// Generate a clean login email from patient name + random code
-function generatePatientEmail(name) {
-  const clean = name.trim().toLowerCase().replace(/\s+/g, '.')
-  const code = Math.random().toString(36).slice(2, 7)
-  return `${clean}.${code}@tbtrack.com`
-}
-
-// Generate a simple readable password
-function generatePassword() {
-  const adjectives = ['Blue', 'Red', 'Green', 'Swift', 'Bright']
-  const nouns = ['Lion', 'Eagle', 'River', 'Star', 'Tree']
-  const num = Math.floor(Math.random() * 900) + 100
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)]
-  const noun = nouns[Math.floor(Math.random() * nouns.length)]
-  return `${adj}${noun}${num}`
+  patientEmail: '',
+  patientPassword: '',
 }
 
 function CopyButton({ text }) {
@@ -61,13 +46,18 @@ export default function PatientForm() {
   const [form, setForm] = useState(empty)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [savedData, setSavedData] = useState(null) // { patientId, email, password }
+  const [savedData, setSavedData] = useState(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const credentialsRef = useRef(null)
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
   }
 
-  const canSubmit = useMemo(() => form.name.trim().length > 0 && form.treatment_start, [form])
+  const canSubmit = useMemo(
+    () => form.name.trim().length > 0 && form.treatment_start && form.patientEmail.trim().length > 0 && form.patientPassword.length >= 6,
+    [form]
+  )
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -80,7 +70,7 @@ export default function PatientForm() {
     setError('')
 
     try {
-      // Step 1: Save patient record
+      // Step 1: Save patient record to the database
       const payload = {
         name: form.name.trim(),
         age: form.age === '' ? null : Number(form.age),
@@ -114,16 +104,22 @@ export default function PatientForm() {
 
       const patientId = patientData.id
 
-      // Step 2: Create patient login account
-      const email = generatePatientEmail(form.name)
-      const password = generatePassword()
+      // Step 2: Store credentials in a ref so they survive the re-render below
+      const email = form.patientEmail.trim()
+      const password = form.patientPassword
+      const patientName = form.name.trim()
+      credentialsRef.current = { patientId, email, password, name: patientName }
 
+      // Save the hospital session — creating a new user via signUp will replace it
+      const { data: currentSession } = await supabase.auth.getSession()
+
+      // Step 3: Create the patient's login account in Supabase Auth
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: form.name.trim(),
+            full_name: patientName,
             role: 'patient',
           },
         },
@@ -133,7 +129,7 @@ export default function PatientForm() {
 
       const newUserId = authData.user?.id
 
-      // Step 3: Link the auth user to the patient record
+      // Step 4: Link the new auth account to the patient record
       if (newUserId) {
         const { error: linkErr } = await supabase
           .from('patients')
@@ -141,12 +137,21 @@ export default function PatientForm() {
           .eq('id', patientId)
 
         if (linkErr) {
-          // Non-fatal — patient record exists, linking just failed
           console.warn('Could not link user_id to patient:', linkErr.message)
         }
       }
 
-      setSavedData({ patientId, email, password, name: form.name.trim() })
+      // Step 5: Restore the hospital staff session (this triggers a re-render)
+      if (currentSession?.session) {
+        await supabase.auth.setSession({
+          access_token: currentSession.session.access_token,
+          refresh_token: currentSession.session.refresh_token,
+        })
+      }
+
+      // Use the ref — it survives the re-render above
+      setSavedData(credentialsRef.current)
+
     } catch (err) {
       setError(err.message ?? 'Something went wrong')
     } finally {
@@ -154,7 +159,7 @@ export default function PatientForm() {
     }
   }
 
-  // Success screen
+  // ── Success screen ──────────────────────────────────────────────────────────
   if (savedData) {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
@@ -190,7 +195,7 @@ export default function PatientForm() {
 
             <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
               <div>
-                <p className="text-xs font-medium text-gray-500">Temporary Password</p>
+                <p className="text-xs font-medium text-gray-500">Password</p>
                 <p className="mt-0.5 font-mono text-sm font-semibold text-gray-900">{savedData.password}</p>
               </div>
               <CopyButton text={savedData.password} />
@@ -198,20 +203,15 @@ export default function PatientForm() {
 
             <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
               <div>
-                <p className="text-xs font-medium text-gray-500">Patient Record ID</p>
-                <p className="mt-0.5 font-mono text-xs text-gray-600">{savedData.patientId}</p>
+                <p className="text-xs font-medium text-gray-500">Patient ID</p>
+                <p className="mt-0.5 font-mono text-sm text-gray-900">{savedData.patientId}</p>
               </div>
               <CopyButton text={savedData.patientId} />
             </div>
           </div>
-
-          <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <strong>Important:</strong> Note down these credentials now. The patient will use them to sign in
-            at <strong>/login</strong> and log their daily doses.
-          </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex gap-3">
           <Link
             to={`/patients/${savedData.patientId}`}
             className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
@@ -233,13 +233,14 @@ export default function PatientForm() {
     )
   }
 
+  // ── Registration form ───────────────────────────────────────────────────────
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Register patient</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Creates a patient record and generates login credentials for the patient portal.
+            Creates a patient record and sets up their login for the patient portal.
           </p>
         </div>
         <Link to="/patients" className="text-sm font-medium text-teal-700 underline">
@@ -391,6 +392,48 @@ export default function PatientForm() {
                 onChange={(e) => update('lng', e.target.value)}
                 placeholder="36.817223"
               />
+            </label>
+          </div>
+        </section>
+
+        {/* Patient portal login */}
+        <section>
+          <h3 className="text-sm font-semibold text-gray-900">Patient portal login</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Set the email and password the patient will use to log their daily doses.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm sm:col-span-2">
+              <span className="text-gray-600">Patient email *</span>
+              <input
+                type="email"
+                required
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none ring-teal-600 focus:ring-2"
+                value={form.patientEmail}
+                onChange={(e) => update('patientEmail', e.target.value)}
+                placeholder="e.g. james.mwangi@gmail.com"
+              />
+            </label>
+            <label className="block text-sm sm:col-span-2">
+              <span className="text-gray-600">Password * (min 6 characters)</span>
+              <div className="relative mt-1">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm outline-none ring-teal-600 focus:ring-2"
+                  value={form.patientPassword}
+                  onChange={(e) => update('patientPassword', e.target.value)}
+                  placeholder="Create a password for the patient"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </label>
           </div>
         </section>
