@@ -1,8 +1,8 @@
 import { useState,useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth.js";
 import { homePathForRole } from "../utils/roles";
-import { Activity } from "react";
+import { Activity } from "lucide-react";
 
 
 export default function Login() {
