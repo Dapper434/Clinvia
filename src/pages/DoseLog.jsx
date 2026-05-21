@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../utils/supabaseClient.js'
-import { useAuth } from '../context/AuthContext.jsx'
+import { useAuth } from '../context/useAuth.js'
 import { todayISODate } from '../utils/dateHelpers.js'
 import DoseToggle from '../components/patients/DoseToggle.jsx'
 

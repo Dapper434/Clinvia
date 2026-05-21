@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../utils/supabaseClient.js'
-import { useAuth } from '../../context/AuthContext.jsx'
+import { useAuth } from '../../context/useAuth.js'
 import { Copy, Check, UserPlus, Eye, EyeOff } from 'lucide-react'
 
 const empty = {
