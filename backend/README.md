@@ -1,4 +1,4 @@
-# PulmoTrack Backend REST API (Render Deployment)
+# TBTrack Backend REST API (Render Deployment)
 
 A Node.js/Express REST API service connecting to a PostgreSQL database for Tuberculosis (TB) treatment tracking, patient management, dose adherence monitoring, lab results, and contact tracing.
 
