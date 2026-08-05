@@ -1,4 +1,8 @@
-# TBTrack Backend REST API (Render Deployment)
+# TBTrack Backend REST API
+
+[![API Status](https://img.shields.io/badge/API-Active%20Health-46E3B7?style=flat&logo=render)](https://tbtrack-ad20.onrender.com/health)
+[![Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=flat&logo=github)](https://github.com/Dapper434/tbtrack)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
 
 A Node.js/Express REST API service connecting to a PostgreSQL database for Tuberculosis (TB) treatment tracking, patient management, dose adherence monitoring, lab results, and contact tracing.
 
