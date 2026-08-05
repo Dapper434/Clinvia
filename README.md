@@ -1,6 +1,6 @@
-# PulmoTrack — Tuberculosis Case Management & Treatment Adherence Platform
+# TBTrack — Tuberculosis Case Management & Treatment Adherence Platform
 
-[![Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/Dapper434/PulmoTrack)
+[![Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/Dapper434/tbtrack)
 [![Frontend Deploy](https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel)](https://vercel.com)
 [![Backend Deploy](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render)](https://render.com)
 
@@ -11,7 +11,7 @@ A full-stack platform connecting hospitals and TB patients for daily DOT adheren
 ## 📁 Repository Structure
 
 ```
-PulmoTrack/
+tbtrack/
 ├── backend/          # Node.js + Express REST API (PostgreSQL database & JWT auth)
 │   ├── database/     # PostgreSQL schema.sql & seed.sql
 │   ├── src/          # Controllers, routes, middleware, and database pool

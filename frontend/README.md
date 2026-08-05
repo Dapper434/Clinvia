@@ -1,12 +1,12 @@
-# PulmoTrack Frontend Application
+# TBTrack Frontend Application
 
-[![Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=flat&logo=github)](https://github.com/Dapper434/PulmoTrack)
+[![Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=flat&logo=github)](https://github.com/Dapper434/tbtrack)
 [![Deployment](https://img.shields.io/badge/Deploy-Vercel-black?style=flat&logo=vercel)](https://vercel.com)
 
-The frontend client application for **PulmoTrack** — Tuberculosis Case Management & Adherence Platform.
+The frontend client application for **TBTrack** — Tuberculosis Case Management & Adherence Platform.
 
 The core codebase is available at:  
-🔗 **[https://github.com/Dapper434/PulmoTrack](https://github.com/Dapper434/PulmoTrack)**.
+🔗 **[https://github.com/Dapper434/tbtrack](https://github.com/Dapper434/tbtrack)**.
 
 ---
 
