@@ -1,7 +1,7 @@
 # TBTrack Frontend Application
 
 [![Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=flat&logo=github)](https://github.com/Dapper434/tbtrack)
-[![Deployment](https://img.shields.io/badge/Deploy-Vercel-black?style=flat&logo=vercel)](https://vercel.com)
+[![Live App](https://img.shields.io/badge/Live%20App-tbtrack.vercel.app-0d9488?style=flat&logo=vercel)](https://tbtrack.vercel.app)
 
 The frontend client application for **TBTrack** — Tuberculosis Case Management & Adherence Platform.
 
