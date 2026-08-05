@@ -2,7 +2,7 @@
 
 [![Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/Dapper434/tbtrack)
 [![Frontend Deploy](https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel)](https://vercel.com)
-[![Backend Deploy](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render)](https://render.com)
+[![Backend Deploy](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render)](https://tbtrack-ad20.onrender.com/health)
 
 A full-stack platform connecting hospitals and TB patients for daily DOT adherence logging, contact tracing, lab management, GIS mapping, and clinical reporting.
 
