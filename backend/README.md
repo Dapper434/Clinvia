@@ -90,12 +90,12 @@ The API will be live at `http://localhost:5000` with the health check at `http:/
 
 ---
 
-## 🌐 Deploying to Render
+## 🌐 Deploying to Render (From Monorepo)
 
-1. Push this repository to GitHub (e.g. `your-username/tbtrack-backend`).
-2. Log into [Render Dashboard](https://dashboard.render.com).
-3. Click **New +** -> **Web Service** and connect your `tbtrack-backend` repository (or choose **Blueprints** and point to `render.yaml`).
-4. Set the environment variables in the Render settings:
+1. Connect your repository (`Dapper434/tbtrack`) on [Render Dashboard](https://dashboard.render.com).
+2. Click **New +** -> **Web Service** (or use **Blueprints** with `backend/render.yaml`).
+3. Set **Root Directory** to `backend`.
+4. Set the environment variables in Render:
    - `DATABASE_URL`: Your PostgreSQL connection string.
    - `JWT_SECRET`: A secure random 32+ character string.
    - `FRONTEND_URL`: Your Vercel frontend URL (e.g. `https://tbtrack.vercel.app`).
