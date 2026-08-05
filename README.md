@@ -92,10 +92,11 @@ npm run seed:backend    # Seed the PostgreSQL database
 
 ---
 
-## 🌐 Deployments
+## 🌐 Deployments (Single Monorepo)
 
-- **Frontend**: Configured for deployment on [Vercel](https://vercel.com) using [`frontend/vercel.json`](./frontend/vercel.json). (Source repo: [https://github.com/Dapper434/tbtrack.git](https://github.com/Dapper434/tbtrack.git))
-- **Backend**: Configured for one-click deployment on [Render](https://render.com) using [`backend/render.yaml`](./backend/render.yaml).
+Both services are deployed directly from this unified repository (`Dapper434/tbtrack`):
+- **Frontend**: Deployed on [Vercel](https://vercel.com) by setting Root Directory to `frontend` with [`frontend/vercel.json`](./frontend/vercel.json).
+- **Backend**: Deployed on [Render](https://render.com) by setting Root Directory to `backend` with [`backend/render.yaml`](./backend/render.yaml).
 
 ---
 
