@@ -1,0 +1,30 @@
+{
+  "name": "tbtrack-backend",
+  "version": "1.0.0",
+  "description": "TBTrack Express REST API with PostgreSQL connection and JWT authentication for Render deployment",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/scripts/seed.js"
+  },
+  "keywords": [
+    "tbtrack",
+    "express",
+    "postgresql",
+    "render",
+    "rest-api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.13.3"
+  }
+}

@@ -1,63 +1,104 @@
-# TBTrack
+# PulmoTrack — Tuberculosis Case Management & Treatment Adherence Platform
 
-Web app for tuberculosis case management: patient registry, DOT dose logging, adherence, labs, contacts, dashboard charts, and a Kenya case map (Leaflet + OpenStreetMap).
+[![Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/Dapper434/PulmoTrack)
+[![Frontend Deploy](https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel)](https://vercel.com)
+[![Backend Deploy](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render)](https://render.com)
 
-This project lives in `/home/pipsy/TB-TRACK` and is separate from the Personal Finance Tracker app.
+A full-stack platform connecting hospitals and TB patients for daily DOT adherence logging, contact tracing, lab management, GIS mapping, and clinical reporting.
 
-## Stack
+---
 
-- React (Vite) + React Router
-- Tailwind CSS
-- Supabase (Postgres + Auth)
-- Chart.js + react-chartjs-2
-- Leaflet + react-leaflet + date-fns + Lucide
+## 📁 Repository Structure
 
-## Quick start
-
-```bash
-cd tbtrack
-cp .env.example .env
-# Edit .env with your Supabase URL + anon key
-
-npm install
-npm run dev
+```
+PulmoTrack/
+├── backend/          # Node.js + Express REST API (PostgreSQL database & JWT auth)
+│   ├── database/     # PostgreSQL schema.sql & seed.sql
+│   ├── src/          # Controllers, routes, middleware, and database pool
+│   ├── render.yaml   # Render deployment configuration
+│   └── README.md     # Backend setup & API documentation
+│
+├── frontend/         # React + Vite + Tailwind CSS + Leaflet web app
+│   ├── src/          # Pages, components, API client, and state management
+│   ├── vercel.json   # Vercel deployment configuration
+│   ├── README.md     # Dedicated frontend documentation
+│   └── index.html    # HTML shell with Leaflet styles
+│
+├── start.sh          # One-click start script for full-stack app
+├── PROPOSAL.md       # Project overview and hackathon presentation proposal
+└── package.json      # Monorepo runner scripts & workspaces
 ```
 
-Open `http://localhost:5173`.
+---
 
-## Supabase setup
+## 🚀 Quick Start (Single Command)
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. In **SQL Editor**, run `supabase/schema.sql` (tables, RLS, optional seed data, auth → `profiles` trigger).
-3. If you already ran an older schema, also run `supabase/migration_patient_portal.sql`.
-4. In **Authentication → Providers**, enable Email (password sign-in). For hackathon demos you can disable “Confirm email” or use the link from the signup email.
-5. Sign up at `/login` — choose **Hospital** or **Patient**.
+To launch the entire platform (Backend API + Frontend UI) with one command:
 
-### Dose log upserts
+```bash
+./start.sh
+```
 
-The `dose_logs` table defines `unique (patient_id, date)` so the app can `upsert` with `onConflict: 'patient_id,date'`.
+Or using npm:
 
-### Auth trigger note
+```bash
+npm start
+```
 
-If creating a trigger on `auth.users` fails in your environment, create the `profiles` row manually for each user (`id` = `auth.users.id`) and keep the `profiles` RLS policies from the schema file.
+This will automatically configure environment files if missing, start the Express backend on `http://localhost:5000`, and start the Vite frontend on `http://localhost:5173`. Press `Ctrl+C` to stop all services.
 
-## Scripts
+---
 
-| Command        | Description        |
-| -------------- | ------------------ |
-| `npm run dev`  | Vite dev server      |
-| `npm run build`| Production build     |
-| `npm run preview` | Preview production build |
-| `npm run lint` | ESLint               |
+### Manual Setup & Individual Services
 
-## Routes
+#### 1. Prerequisites
 
-- `/` → role-based home (`/dashboard` or `/my-treatment`) or `/login`
-- `/login` — choose hospital vs patient
-- `/login/hospital`, `/login/patient`
-- **Hospital:** `/dashboard`, `/patients`, `/patients/new`, `/patients/:id`, `/dose-log`, `/case-map`, `/reports`
-- **Patient:** `/my-treatment` — log daily doses; same data appears on the hospital adherence calendar
+- **Node.js**: v18+
+- **PostgreSQL**: Local instance, Render PostgreSQL, Supabase Postgres, or Neon
 
-## License
+#### 2. Backend Setup
 
-Hackathon / educational use — adapt as needed for your team.
+```bash
+cd backend
+cp .env.example .env
+# Configure PORT, DATABASE_URL, and JWT_SECRET in .env
+
+npm install
+npm run seed     # Applies database schema and loads sample data
+npm run dev      # Starts API server on http://localhost:5000
+```
+
+#### 3. Frontend Setup
+
+```bash
+cd frontend
+cp .env.example .env
+# Set VITE_API_URL=http://localhost:5000
+
+npm install
+npm run dev      # Starts Vite dev server on http://localhost:5173
+```
+
+#### 4. Workspace Scripts
+
+From the repository root:
+
+```bash
+npm run dev:backend     # Start backend in development mode
+npm run dev:frontend    # Start frontend in development mode
+npm run build:frontend  # Build frontend for production
+npm run seed:backend    # Seed the PostgreSQL database
+```
+
+---
+
+## 🌐 Deployments
+
+- **Frontend**: Configured for deployment on [Vercel](https://vercel.com) using [`frontend/vercel.json`](./frontend/vercel.json). (Source repo: [https://github.com/Dapper434/tbtrack.git](https://github.com/Dapper434/tbtrack.git))
+- **Backend**: Configured for one-click deployment on [Render](https://render.com) using [`backend/render.yaml`](./backend/render.yaml).
+
+---
+
+## 📄 License
+
+Hackathon / Educational use.
