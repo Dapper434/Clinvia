@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getToken, removeToken } from '../api/client.js'
-import { loginApi, registerHospitalApi, registerPatientApi, getMeApi, logoutApi } from '../api/auth.js'
-import { isHospitalRole, isPatientRole } from '../utils/roles.js'
+import { loginApi, registerPatientApi, getMeApi, logoutApi } from '../api/auth.js'
+import { isHospitalRole, isPatientRole, isAdminRole } from '../utils/roles.js'
 import { AuthContext } from './authContext.js'
 
 export function AuthProvider({ children }) {
@@ -41,19 +41,11 @@ export function AuthProvider({ children }) {
     Promise.resolve().then(fetchCurrentUser)
   }, [fetchCurrentUser])
 
-  const signIn = async (email, password) => {
-    const data = await loginApi(email, password)
+  const signIn = async (portal, email, password) => {
+    const data = await loginApi(portal, email, password)
     setUser(data.user)
     setProfile(data.profile)
     setPatientId(data.patientId || null)
-    return data
-  }
-
-  const signUpHospital = async (email, password, fullName) => {
-    const data = await registerHospitalApi(email, password, fullName)
-    setUser(data.user)
-    setProfile(data.profile)
-    setPatientId(null)
     return data
   }
 
@@ -75,6 +67,7 @@ export function AuthProvider({ children }) {
   const effectiveRole = profile?.role ?? user?.role ?? null
   const isHospital = isHospitalRole(effectiveRole)
   const isPatient = isPatientRole(effectiveRole)
+  const isAdmin = isAdminRole(effectiveRole)
 
   const value = {
     user,
@@ -82,10 +75,10 @@ export function AuthProvider({ children }) {
     role: effectiveRole,
     isHospital,
     isPatient,
+    isAdmin,
     patientId,
     loading,
     signIn,
-    signUpHospital,
     signUpPatient,
     signOut,
     refreshProfile: fetchCurrentUser,

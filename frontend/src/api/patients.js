@@ -14,10 +14,6 @@ export async function getPatientByIdApi(id) {
   return apiClient(`/api/patients/${id}`)
 }
 
-export async function getMyTreatmentApi() {
-  return apiClient('/api/portal/my-treatment')
-}
-
 export async function createPatientApi(patientData) {
   return apiClient('/api/patients', {
     method: 'POST',

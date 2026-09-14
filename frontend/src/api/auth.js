@@ -1,20 +1,18 @@
 import { apiClient, setToken, removeToken } from './client.js'
 
-export async function loginApi(email, password) {
-  const res = await apiClient('/api/auth/login', {
-    method: 'POST',
-    body: { email, password },
-  })
-  if (res.token) {
-    setToken(res.token)
-  }
-  return res
+const LOGIN_PATHS = {
+  hospital: '/api/auth/login/hospital',
+  patient: '/api/auth/login/patient',
 }
 
-export async function registerHospitalApi(email, password, fullName) {
-  const res = await apiClient('/api/auth/register/hospital', {
+export async function loginApi(portal, email, password) {
+  const path = LOGIN_PATHS[portal]
+  if (!path) {
+    throw new Error(`Unknown login portal: ${portal}`)
+  }
+  const res = await apiClient(path, {
     method: 'POST',
-    body: { email, password, fullName },
+    body: { email, password },
   })
   if (res.token) {
     setToken(res.token)

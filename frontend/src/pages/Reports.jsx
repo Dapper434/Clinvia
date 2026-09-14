@@ -85,7 +85,7 @@ export default function Reports() {
       mdr_flag: p.mdr_flag,
       created_at: p.created_at,
     }))
-    downloadCsv(`tbtrack-registry-${format(new Date(), 'yyyyMMdd-HHmm')}.csv`, buildCsv(rows, cols))
+    downloadCsv(`clinvia-registry-${format(new Date(), 'yyyyMMdd-HHmm')}.csv`, buildCsv(rows, cols))
   }
 
   return (

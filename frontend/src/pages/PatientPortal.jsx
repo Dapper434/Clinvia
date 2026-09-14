@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../context/useAuth.js'
-import { getMyTreatmentApi } from '../api/patients.js'
-import { getDoseLogsApi, upsertDoseLogApi } from '../api/doseLogs.js'
+import { getMyTreatmentApi, logMyDoseApi } from '../api/portal.js'
 import { calcAdherence, daysRemainingInTreatment, getRiskLevel } from '../utils/adherence.js'
 import { todayISODate } from '../utils/dateHelpers.js'
 import AdherenceCalendar from '../components/patients/AdherenceCalendar.jsx'
@@ -24,15 +23,13 @@ export default function PatientPortal() {
     try {
       setError('')
       setLoading(true)
-      const p = await getMyTreatmentApi()
+      const { patient: p, doseLogs: logs } = await getMyTreatmentApi()
       if (!p) {
         setError('No active treatment record found linked to your account.')
         setLoading(false)
         return
       }
       setPatient(p)
-
-      const logs = await getDoseLogsApi({ patient_id: p.id })
       setDoseLogs(logs ?? [])
 
       const today = todayISODate()
@@ -58,11 +55,9 @@ export default function PatientPortal() {
     setMessage('')
 
     try {
-      await upsertDoseLogApi({
-        patient_id: patient.id,
+      await logMyDoseApi({
         date: todayISODate(),
         taken: Boolean(todayTaken),
-        logged_by: user.id,
       })
       setMessage('Great job! Your dose was logged and submitted to your healthcare provider.')
       await reload()

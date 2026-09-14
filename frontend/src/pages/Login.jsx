@@ -27,7 +27,7 @@ export default function Login({ portal = 'hospital' }) {
       <div className="flex min-h-screen items-center justify-center bg-slate-900">
         <div className="flex flex-col items-center gap-3">
           <Activity className="h-8 w-8 animate-pulse text-teal-400" />
-          <p className="text-sm font-medium text-slate-400">Loading TBTrack…</p>
+          <p className="text-sm font-medium text-slate-400">Loading Clinvia…</p>
         </div>
       </div>
     )
@@ -39,7 +39,7 @@ export default function Login({ portal = 'hospital' }) {
     setBusy(true)
 
     try {
-      const res = await signIn(email.trim(), password)
+      const res = await signIn(portal, email.trim(), password)
       if (res?.error) {
         throw new Error(res.error.message || 'Invalid credentials')
       }
@@ -113,12 +113,14 @@ export default function Login({ portal = 'hospital' }) {
           </form>
 
           <div className="mt-6 space-y-2 border-t border-slate-700/60 pt-4 text-center">
-            <p className="text-xs text-slate-400">
-              Don't have an account?{' '}
-              <Link to={theme.signupPath} className={`font-semibold ${theme.accent.link}`}>
-                Sign up
-              </Link>
-            </p>
+            {theme.signupPath ? (
+              <p className="text-xs text-slate-400">
+                Don't have an account?{' '}
+                <Link to={theme.signupPath} className={`font-semibold ${theme.accent.link}`}>
+                  Sign up
+                </Link>
+              </p>
+            ) : null}
             <p className="text-xs text-slate-500">{theme.footer}</p>
           </div>
         </div>

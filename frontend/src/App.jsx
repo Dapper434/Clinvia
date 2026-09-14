@@ -3,11 +3,11 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/useAuth.js'
 import HospitalRoute from './components/layout/HospitalRoute.jsx'
 import PatientRoute from './components/layout/PatientRoute.jsx'
+import AdminRoute from './components/layout/AdminRoute.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import PatientLayout from './components/layout/PatientLayout.jsx'
 import Welcome from './pages/Welcome.jsx'
 import Login from './pages/Login.jsx'
-import SignUpHospital from './pages/SignUpHospital.jsx'
 import SignUpPatient from './pages/SignUpPatient.jsx'
 import { homePathForRole } from './utils/roles.js'
 import { Activity } from 'lucide-react'
@@ -22,13 +22,15 @@ const DoseLog = lazy(() => import('./pages/DoseLog.jsx'))
 const CaseMap = lazy(() => import('./pages/CaseMap.jsx'))
 const Reports = lazy(() => import('./pages/Reports.jsx'))
 const PatientPortal = lazy(() => import('./pages/PatientPortal.jsx'))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard.jsx'))
+const StaffManagement = lazy(() => import('./pages/admin/StaffManagement.jsx'))
 
 function PageLoader() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-900">
       <div className="flex flex-col items-center gap-3">
         <Activity className="h-8 w-8 animate-pulse text-teal-400" />
-        <p className="text-sm font-medium text-slate-400">Loading TBTrack…</p>
+        <p className="text-sm font-medium text-slate-400">Loading Clinvia…</p>
       </div>
     </div>
   )
@@ -50,9 +52,9 @@ export default function App() {
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<Navigate to="/welcome" replace />} />
         <Route path="/login/hospital" element={<Login portal="hospital" />} />
+        <Route path="/login/admin" element={<Navigate to="/login/hospital" replace />} />
         <Route path="/login/patient" element={<Login portal="patient" />} />
         <Route path="/signup" element={<Navigate to="/welcome" replace />} />
-        <Route path="/signup/hospital" element={<SignUpHospital />} />
         <Route path="/signup/patient" element={<SignUpPatient />} />
 
         {/* Patient Portal Routes */}
@@ -62,7 +64,7 @@ export default function App() {
           </Route>
         </Route>
 
-        {/* Hospital Staff Routes */}
+        {/* Hospital Staff Routes (admin accounts can reach these too) */}
         <Route element={<HospitalRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -72,6 +74,14 @@ export default function App() {
             <Route path="/dose-log" element={<DoseLog />} />
             <Route path="/case-map" element={<CaseMap />} />
             <Route path="/reports" element={<Reports />} />
+          </Route>
+        </Route>
+
+        {/* Admin-only Routes */}
+        <Route element={<AdminRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/staff" element={<StaffManagement />} />
           </Route>
         </Route>
 

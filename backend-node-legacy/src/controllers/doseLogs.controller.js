@@ -1,8 +1,28 @@
 import { query } from '../config/db.js'
+import { isHospitalRole } from '../middleware/auth.js'
+
+async function getOwnPatientId(userId) {
+  const res = await query('SELECT id FROM patients WHERE user_id = $1 LIMIT 1', [userId])
+  return res.rows[0]?.id || null
+}
 
 export async function getDoseLogs(req, res, next) {
   try {
-    const { patient_id, date, start_date, end_date } = req.query
+    const { date, start_date, end_date } = req.query
+    let { patient_id } = req.query
+
+    if (req.user.role === 'patient') {
+      const ownPatientId = await getOwnPatientId(req.user.id)
+      if (!ownPatientId) {
+        return res.status(404).json({ error: 'No patient record linked to your account' })
+      }
+      if (patient_id && patient_id !== ownPatientId) {
+        return res.status(403).json({ error: 'You may only view your own dose logs' })
+      }
+      patient_id = ownPatientId
+    } else if (!isHospitalRole(req.user.role)) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
 
     let sql = 'SELECT * FROM dose_logs WHERE 1=1'
     const params = []
@@ -48,10 +68,22 @@ export async function upsertDoseLog(req, res, next) {
       return res.status(400).json({ error: 'No dose logs provided' })
     }
 
+    let ownPatientId = null
+    if (req.user.role === 'patient') {
+      ownPatientId = await getOwnPatientId(req.user.id)
+      if (!ownPatientId) {
+        return res.status(404).json({ error: 'No patient record linked to your account' })
+      }
+    } else if (!isHospitalRole(req.user.role)) {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+
     const results = []
 
     for (const row of rows) {
-      const { patient_id, date, taken, notes } = row
+      // Patients may only ever write their own dose log, regardless of what the request body claims.
+      const patient_id = ownPatientId || row.patient_id
+      const { date, taken, notes } = row
       if (!patient_id || !date) {
         continue
       }
