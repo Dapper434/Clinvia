@@ -6,7 +6,7 @@ const router = Router()
 
 router.use(authenticateToken)
 
-router.get('/', getContacts)
+router.get('/', requireHospital, getContacts)
 router.post('/', requireHospital, createContact)
 router.patch('/:id', requireHospital, updateContact)
 

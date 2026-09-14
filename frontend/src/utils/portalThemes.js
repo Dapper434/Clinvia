@@ -1,21 +1,23 @@
 import { Stethoscope, HeartPulse } from 'lucide-react'
 
 /**
- * Shared branding for the two portal tracks (clinician vs patient).
- * Used by the Welcome chooser, Login and both Sign-up pages so the whole
- * auth journey keeps one consistent look per audience.
+ * Shared branding for the two portal tracks (hospital vs patient).
+ * "hospital" covers both clinical staff and admin accounts through one
+ * unified sign-in — RBAC decides what each role can do after logging in,
+ * not which login page they used to get in.
+ * Used by the Welcome chooser, Login and the patient Sign-up page so the
+ * whole auth journey keeps one consistent look per audience.
  */
 export const PORTAL_THEMES = {
   hospital: {
     icon: Stethoscope,
-    label: 'Clinician Portal',
-    audience: 'For healthcare staff',
-    subtitle: 'Manage patient records, daily dose logs, case maps and reports.',
+    label: 'Hospital Portal',
+    audience: 'For hospital staff & admins',
+    subtitle: 'Manage patient records, daily dose logs, case maps, reports, and staff accounts.',
     emailPlaceholder: 'name@hospital.org',
     loginPath: '/login/hospital',
-    signupPath: '/signup/hospital',
-    footer:
-      'Hospital staff accounts are provisioned by clinic admins. Contact your facility administrator to request access.',
+    signupPath: null,
+    footer: 'Staff and admin accounts are provisioned internally, not self-service.',
     accent: {
       logoBox: 'bg-teal-500/10 border-teal-500/20 shadow-teal-500/5',
       icon: 'text-teal-400',

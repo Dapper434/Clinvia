@@ -2,6 +2,12 @@ import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'tbtrack_default_secret_development_key_32chars'
 
+const HOSPITAL_ROLES = new Set(['hospital', 'nurse', 'admin', 'viewer'])
+
+export function isHospitalRole(role) {
+  return HOSPITAL_ROLES.has(role)
+}
+
 export function generateToken(payload) {
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
@@ -30,8 +36,7 @@ export function requireHospital(req, res, next) {
     return res.status(401).json({ error: 'Authentication required' })
   }
   const role = req.user.role || 'hospital'
-  const hospitalRoles = ['hospital', 'nurse', 'admin', 'viewer']
-  if (!hospitalRoles.includes(role)) {
+  if (!isHospitalRole(role)) {
     return res.status(403).json({ error: 'Hospital staff access required' })
   }
   next()

@@ -1,17 +1,16 @@
 {
-  "name": "tbtrack",
+  "name": "clinvia",
   "private": true,
   "version": "1.0.0",
   "workspaces": [
-    "backend",
     "frontend"
   ],
   "scripts": {
     "start": "./start.sh",
     "dev": "./start.sh",
-    "dev:backend": "npm run dev --workspace=backend",
+    "dev:backend": "cd backend && . venv/bin/activate && python wsgi.py",
     "dev:frontend": "npm run dev --workspace=frontend",
     "build:frontend": "npm run build --workspace=frontend",
-    "seed:backend": "npm run seed --workspace=backend"
+    "seed:backend": "cd backend && . venv/bin/activate && python seed.py"
   }
 }

@@ -3,7 +3,7 @@ import { Activity } from 'lucide-react'
 export default function AuthHeader({
   icon: Icon = Activity,
   accent,
-  tagline = 'National Tuberculosis Surveillance & Adherence Management',
+  tagline = 'Hospital Management & TB Care Platform',
 }) {
   return (
     <div className="mb-8 text-center">
@@ -12,7 +12,7 @@ export default function AuthHeader({
       >
         <Icon className={`h-8 w-8 ${accent.icon}`} />
       </div>
-      <h1 className="text-3xl font-bold tracking-tight text-white">TBTrack</h1>
+      <h1 className="text-3xl font-bold tracking-tight text-white">Clinvia</h1>
       <p className="mt-2 text-sm text-slate-400">{tagline}</p>
     </div>
   )

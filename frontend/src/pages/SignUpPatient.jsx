@@ -34,7 +34,7 @@ export default function SignUpPatient() {
       <div className="flex min-h-screen items-center justify-center bg-slate-900">
         <div className="flex flex-col items-center gap-3">
           <Activity className="h-8 w-8 animate-pulse text-teal-400" />
-          <p className="text-sm font-medium text-slate-400">Loading TBTrack…</p>
+          <p className="text-sm font-medium text-slate-400">Loading Clinvia…</p>
         </div>
       </div>
     )

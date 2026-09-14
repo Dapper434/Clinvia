@@ -1,24 +1,24 @@
 /**
- * TBTrack Central API Client
+ * Clinvia Central API Client
  * Configures base URL from VITE_API_URL and attaches Authorization Bearer tokens.
  */
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '')
 
 export function getToken() {
-  return localStorage.getItem('tbtrack_token')
+  return localStorage.getItem('clinvia_token')
 }
 
 export function setToken(token) {
   if (token) {
-    localStorage.setItem('tbtrack_token', token)
+    localStorage.setItem('clinvia_token', token)
   } else {
-    localStorage.removeItem('tbtrack_token')
+    localStorage.removeItem('clinvia_token')
   }
 }
 
 export function removeToken() {
-  localStorage.removeItem('tbtrack_token')
+  localStorage.removeItem('clinvia_token')
 }
 
 export async function apiClient(endpoint, options = {}) {

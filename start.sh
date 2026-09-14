@@ -3,7 +3,8 @@
 # ==============================================================================
 # TBTrack Full-Stack Launch Script
 # ==============================================================================
-# Starts both the Node.js Express Backend and Vite React Frontend concurrently.
+# Starts both the Flask Backend (Flask-SQLAlchemy) and Vite React Frontend
+# concurrently.
 # ==============================================================================
 
 # Determine root repository directory
@@ -41,9 +42,25 @@ if [ ! -f "$ROOT_DIR/frontend/.env" ]; then
     echo -e "${GREEN}✓ Created frontend/.env${NC}"
 fi
 
-# 2. Check Node.js and NPM
+# 2. Check Python, Node.js and npm
+if ! command -v python3 &> /dev/null; then
+    echo -e "${RED}❌ Python 3 is not installed. Please install Python 3.11+ to continue.${NC}"
+    exit 1
+fi
+
+# node/npm are commonly installed via nvm, which only loads in interactive shell
+# rc files (.zshrc/.bashrc). This script runs as a plain bash subprocess (e.g. from
+# a task runner or a different shell), which never sources those — so load nvm
+# directly here if node isn't already on PATH.
 if ! command -v node &> /dev/null; then
-    echo -e "${RED}❌ Node.js is not installed. Please install Node.js (v18+) to continue.${NC}"
+    export NVM_DIR="$HOME/.nvm"
+    if [ -s "$NVM_DIR/nvm.sh" ]; then
+        \. "$NVM_DIR/nvm.sh"
+    fi
+fi
+
+if ! command -v node &> /dev/null; then
+    echo -e "${RED}❌ Node.js is not installed (or not found on PATH — checked nvm too). Please install Node.js (v18+) to continue.${NC}"
     exit 1
 fi
 
@@ -52,13 +69,22 @@ if ! command -v npm &> /dev/null; then
     exit 1
 fi
 
-# 3. Check / install dependencies if needed
-if [ ! -d "$ROOT_DIR/node_modules" ] && [ ! -d "$ROOT_DIR/backend/node_modules" ]; then
-    echo -e "${CYAN}📦 Installing dependencies across workspaces...${NC}"
+# 3. Backend: create venv & install dependencies if needed
+if [ ! -d "$ROOT_DIR/backend/venv" ]; then
+    echo -e "${CYAN}🐍 Creating backend virtual environment...${NC}"
+    python3 -m venv "$ROOT_DIR/backend/venv"
+    echo -e "${CYAN}📦 Installing backend dependencies...${NC}"
+    "$ROOT_DIR/backend/venv/bin/pip" install --upgrade pip -q
+    "$ROOT_DIR/backend/venv/bin/pip" install -r "$ROOT_DIR/backend/requirements.txt" -q
+fi
+
+# 4. Frontend: install dependencies if needed
+if [ ! -d "$ROOT_DIR/node_modules" ]; then
+    echo -e "${CYAN}📦 Installing frontend dependencies...${NC}"
     npm install
 fi
 
-# 4. Cleanup background processes on exit
+# 5. Cleanup background processes on exit
 cleanup() {
     echo ""
     echo -e "${YELLOW}🛑 Shutting down TBTrack services...${NC}"
@@ -75,15 +101,16 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM EXIT
 
-# 5. Start Backend Service
+# 6. Start Backend Service (Flask)
 echo -e "${CYAN}🚀 Starting Backend API on http://localhost:5000...${NC}"
 (
     cd "$ROOT_DIR/backend"
-    npm run dev
+    source venv/bin/activate
+    python wsgi.py
 ) &
 BACKEND_PID=$!
 
-# 6. Start Frontend Service
+# 7. Start Frontend Service
 echo -e "${CYAN}🚀 Starting Frontend UI on http://localhost:5173...${NC}"
 (
     cd "$ROOT_DIR/frontend"

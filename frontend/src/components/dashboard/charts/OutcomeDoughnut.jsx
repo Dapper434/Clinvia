@@ -8,14 +8,17 @@ import { Doughnut } from 'react-chartjs-2'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
-const colors = {
+const DEFAULT_COLORS = {
   active: '#16a34a',
   completed: '#2563eb',
   lost: '#dc2626',
   died: '#6b7280',
+  positive: '#dc2626',
+  negative: '#16a34a',
+  pending: '#f59e0b',
 }
 
-export default function OutcomeDoughnut({ counts }) {
+export default function OutcomeDoughnut({ counts, colors = DEFAULT_COLORS, title = 'Treatment outcomes', emptyLabel = 'No patient data yet.' }) {
   const safeCounts = counts || {}
   const labels = Object.keys(safeCounts).filter((k) => safeCounts[k] > 0)
   const dataValues = labels.map((k) => safeCounts[k])
@@ -33,7 +36,7 @@ export default function OutcomeDoughnut({ counts }) {
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4">
-      <h3 className="text-sm font-semibold text-gray-900">Treatment outcomes</h3>
+      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
       <div className="mx-auto mt-4 flex h-64 max-w-xs items-center justify-center">
         {dataValues.length ? (
           <Doughnut
@@ -44,7 +47,7 @@ export default function OutcomeDoughnut({ counts }) {
             }}
           />
         ) : (
-          <p className="text-sm text-gray-500">No patient data yet.</p>
+          <p className="text-sm text-gray-500">{emptyLabel}</p>
         )}
       </div>
     </div>

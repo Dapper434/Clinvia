@@ -127,6 +127,7 @@ export default function DoseLog() {
 
       {!loading && !error ? (
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50/80">
               <tr>
@@ -148,6 +149,7 @@ export default function DoseLog() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {patients.length === 0 ? (
             <p className="p-8 text-center text-sm text-gray-500">No active patients enrolled.</p>

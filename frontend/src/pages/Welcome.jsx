@@ -71,7 +71,7 @@ export default function Welcome() {
       <div className="flex min-h-screen items-center justify-center bg-slate-900">
         <div className="flex flex-col items-center gap-3">
           <Activity className="h-8 w-8 animate-pulse text-teal-400" />
-          <p className="text-sm font-medium text-slate-400">Loading TBTrack…</p>
+          <p className="text-sm font-medium text-slate-400">Loading Clinvia…</p>
         </div>
       </div>
     )
@@ -85,9 +85,9 @@ export default function Welcome() {
           <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-teal-500/20 bg-teal-500/10 shadow-lg shadow-teal-500/5">
             <Activity className="h-9 w-9 text-teal-400" />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white">TBTrack</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-white">Clinvia</h1>
           <p className="mt-2 text-sm text-slate-400">
-            National Tuberculosis Surveillance & Adherence Management
+            Hospital Management & TB Care Platform
           </p>
           <p className="mt-8 text-xs font-medium uppercase tracking-widest text-slate-500">
             How would you like to continue?
@@ -100,15 +100,8 @@ export default function Welcome() {
           <PortalCard theme={patient} features={FEATURES.patient} />
         </div>
 
-        {/* Sign-up cross links */}
-        <div className="mt-8 flex flex-col items-center justify-center gap-2 text-xs text-slate-400 sm:flex-row sm:gap-6">
-          <p>
-            New staff member?{' '}
-            <Link to={hospital.signupPath} className={`font-semibold ${hospital.accent.link}`}>
-              Create a staff account
-            </Link>
-          </p>
-          <span className="hidden text-slate-600 sm:inline">·</span>
+        {/* Sign-up cross link (patient only — staff/admin accounts are created internally, not from here) */}
+        <div className="mt-8 flex items-center justify-center text-xs text-slate-400">
           <p>
             New patient?{' '}
             <Link to={patient.signupPath} className={`font-semibold ${patient.accent.link}`}>
