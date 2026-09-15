@@ -1,14 +1,12 @@
 # Clinvia Frontend Application
 
-> Renamed from TBTrack — the repo, deployed domain, and links below still use the old name pending a separate rename step.
-
-[![Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=flat&logo=github)](https://github.com/Dapper434/tbtrack)
-[![Live App](https://img.shields.io/badge/Live%20App-tbtrack.vercel.app-0d9488?style=flat&logo=vercel)](https://tbtrack.vercel.app)
+[![Repository](https://img.shields.io/badge/GitHub-Repository-181717?style=flat&logo=github)](https://github.com/Dapper434/Clinvia)
+[![Live App](https://img.shields.io/badge/Live%20App-clinvia--indol.vercel.app-0d9488?style=flat&logo=vercel)](https://clinvia-indol.vercel.app)
 
 The frontend client application for **Clinvia** — Hospital Management & TB Care Platform.
 
 The core codebase is available at:  
-🔗 **[https://github.com/Dapper434/tbtrack](https://github.com/Dapper434/tbtrack)**.
+🔗 **[https://github.com/Dapper434/Clinvia](https://github.com/Dapper434/Clinvia)**.
 
 ---
 
@@ -76,4 +74,4 @@ The frontend is configured for deployment on Vercel using [`vercel.json`](./verc
 1. Import repository on [Vercel](https://vercel.com).
 2. Set Root Directory to `frontend` (or project root with workspace build).
 3. Add Environment Variable:
-   - `VITE_API_URL`: Your deployed backend API URL (e.g. `https://tbtrack-backend.onrender.com`).
+   - `VITE_API_URL`: Your deployed backend API URL (e.g. `https://clinvia.onrender.com`).
