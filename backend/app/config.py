@@ -43,5 +43,7 @@ class Config:
     VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:admin@clinvia.local")
     REMINDER_CRON_SECRET = os.environ.get("REMINDER_CRON_SECRET", "")
     APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Africa/Nairobi")
+    # Network admins sign in at this domain; new hospitals get <name>.<domain> by default.
+    NETWORK_EMAIL_DOMAIN = os.environ.get("NETWORK_EMAIL_DOMAIN", "clinvia.health").lower()
     # First-line TB drugs are taken once daily on an empty stomach, i.e. before breakfast.
     DEFAULT_DOSE_TIME = os.environ.get("DEFAULT_DOSE_TIME", "07:00")
