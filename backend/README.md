@@ -22,7 +22,7 @@ cp .env.example .env
 # edit .env: set DATABASE_URL, JWT_SECRET, FRONTEND_URL
 
 flask db upgrade      # applies migrations, creates all tables
-python seed.py        # optional: inserts demo facilities/patients (skips if data already exists)
+flask seed-network    # optional: the five seeded hospitals; resets only those five
 
 python wsgi.py         # starts the dev server on :5000 (or `flask run`)
 ```
@@ -58,13 +58,13 @@ backend/
 │   └── routes/           # one blueprint per resource
 ├── migrations/           # Alembic migration history
 ├── wsgi.py               # entrypoint (`app = create_app()`)
-├── seed.py               # demo data for local dev
+├── seed/                 # flask seed-network (network.py lists hospitals, wards, staff)
 └── requirements.txt
 ```
 
 ## Auth & authorization model
 
-- **Unified hospital sign-in**: `POST /api/auth/login/hospital` accepts both clinical staff and admin credentials — RBAC is enforced by what each role can access after logging in, not by which login form was used. `POST /api/auth/login/patient` is separate. There is no public staff/admin registration endpoint; accounts are created via `POST /api/admin/staff` (admin-only) or `seed.py`.
+- **Staff sign-in by domain**: `POST /api/auth/login/hospital` checks that the email's domain is the account's own hospital (network admins use the network domain). Every request re-reads the user, and `app/auth.py` holds the one permission table all endpoints use; data is scoped to the user's hospital (network admins pick one with the `X-Hospital` header). `POST /api/auth/login/patient` is separate. There is no public staff registration; accounts are created by a hospital admin (`POST /api/staff`), and hospitals register themselves with `POST /api/hospitals/register`.
 - `authenticate_token` — validates the bearer JWT, populates `g.user`
 - `require_hospital` — restricts to `hospital`/`nurse`/`admin`/`viewer` roles (`hospital`/`nurse`/`viewer` currently share identical permissions among themselves)
 - `require_admin` — restricts to the `admin` role only (staff management, admin dashboard)
