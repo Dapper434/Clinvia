@@ -11,34 +11,49 @@ Clinvia helps hospitals and clinics manage patient care from one place, with tub
 
 ## What it does
 
-### 🛡️ Admin Console
-Admins get a bird's-eye view of the hospital: staff accounts, patient counts, lab activity, and case trends. Staff and admin accounts share one login page — what each person can do is enforced by their role after they sign in, not by which form they used. There's no public sign-up for staff; every account is created by an admin.
+Clinvia is a hospital management system with a TB programme built in. Every hospital on Clinvia is its own space: its staff sign in with the hospital's own email domain and only ever see that hospital's patients, beds and schedule.
 
-### 🏥 Hospital & Clinician Portal
-- **Patient registry** — diagnostic details, TB classification (pulmonary vs. extra-pulmonary), and treatment regimen tracking.
-- **DOT adherence tracking** — daily dose logging, a calendar view, adherence percentages, and an alert when a patient misses doses for 3 days running.
-- **Lab results** — GeneXpert, sputum smear, X-ray, and culture results, each with a clear outcome.
-- **Contact tracing** — register household contacts and track their screening status.
-- **Care team** — assign a doctor to each patient; every staff member gets a profile page listing the patients assigned to them.
-- **Analytics & export** — charts for treatment outcomes and case trends, plus one-click CSV export for reporting.
+### 🏥 Running the hospital
+- **Dashboard** — who needs attention today (missed TB doses, sputum that hasn't converted, results still pending), today's schedule, the outpatient queue, beds by ward, admissions per week, and TB doses taken vs missed vs still to log.
+- **Patients** — search and filter the registry, open any record (dose calendar, medication, labs, files, appointments, admissions, household contacts), register new patients with the next P-code.
+- **Appointments** — week view, a live time-slot picker (08:00–15:20, every 40 minutes, weekdays), mark seen or cancel. Doctors on leave can't be booked.
+- **Walk-in queue** — urgent patients first, then by arrival; call patients in to a free doctor.
+- **Admissions & beds** — bed map by ward, admit into a free bed, discharge (the bed goes to cleaning), mark cleaned beds ready.
 
-### 📱 Patient Portal
-Patients check in on their own treatment: a one-tap daily dose log, adherence stats, their lab results, and a visual calendar of their adherence over time. A separate profile page shows their full personal and clinical details along with their assigned doctor.
+### 🫁 TB programme
+- **Dose log** — record directly observed doses; doses a patient checked in themselves are filled in and locked.
+- **Adherence** — always over the last 30 days, banded ≥80% / 60–79% / <60%.
+- **Case map** — TB patients coloured by adherence, with health facilities (Leaflet + OpenStreetMap).
+- **Reports & exports** — treatment success, appointment and ward stats, and CSV exports of the registry, TB cohort, appointments and dose log.
 
-### 🔔 Dose Reminders
-Patients get a push notification on their phone at their dose time, even when Clinvia isn't open, as long as they haven't logged that day's dose yet. Messages are friendly and rotate daily ("Your pills called. They miss you. 💊"). First-line TB medicine is taken once a day on an empty stomach, so the standard reminder time is 7:00 AM, before breakfast; a patient's doctor can pick a different time from their patient page.
+### 👥 Who sees what
+Staff accounts are created in-house by the hospital's administrator; there's no public staff sign-up. The email domain decides which hospital someone signs in to.
 
-### 🗺️ GIS Mapping
-An interactive map (Leaflet + OpenStreetMap) shows where patients and facilities cluster — useful for spotting regional hotspots.
+| Role | Sees |
+|---|---|
+| Network administrator | Every hospital, one at a time or combined; can search people across the network and suspend a hospital |
+| Hospital administrator | Everything in their hospital; manages staff, wards and hospital settings |
+| Executive (e.g. CEO) | Their hospital's totals, trends and reports — not individual patient records |
+| Doctor / clinician | Full clinical records in their hospital; doctors can switch the dashboard to their own patients and schedule |
+| Nurse | Records, the dose log, the queue and discharges |
+| Receptionist | Registration, bookings and the queue; personal details only, no clinical data |
+| Patient | Their own record in the patient portal |
+
+Any hospital can register itself from the welcome page and starts with empty records.
+
+### 📱 Patient portal
+Patients check in their daily dose, see their adherence, results, medication and appointments, book appointments, and upload documents. Anything a patient creates is shown in indigo on staff screens. A clinic gives each patient a link code to connect their portal account to their record.
+
+### 🔔 Dose reminders
+Patients get a push notification at their dose time, even when Clinvia isn't open, as long as they haven't logged that day's dose. First-line TB medicine is taken once a day on an empty stomach, so the standard reminder time is 7:00 AM; the doctor can pick a different time.
 
 ---
 
 ## ⚠️ Known Limitations
 
-Clinvia is still early. A couple of things worth knowing before you rely on it:
-
-- **Facility-level data isolation isn't built yet.** Any hospital-role account (`hospital`, `nurse`, `admin`, `viewer`) can currently read and write any patient's record, regardless of which facility they belong to — and `nurse`/`viewer`/`hospital` share identical permissions with each other. Don't put real patient data in this system until that's fixed.
-- **TB/HIV co-infection fields, SMS reminders, a DR-TB treatment pathway, audit logging, and consent capture** aren't built yet — they're on the roadmap.
+- **Audit logging, consent capture, TB/HIV co-infection fields, a DR-TB treatment pathway and SMS** aren't built yet.
+- Discharged admissions don't keep their historical bed; the walk-in queue holds today only.
+- Drug names, doses and regimens in the seeded data are illustrative, not clinical guidance.
 
 ---
 
@@ -52,12 +67,14 @@ clinvia/
 │   ├── app/
 │   │   ├── config.py         # Env-based config, DB URL normalization (SSL, driver)
 │   │   ├── extensions.py     # db (SQLAlchemy), migrate (Flask-Migrate)
-│   │   ├── models.py         # User, Profile, Facility, Patient, DoseLog, LabResult, Contact
-│   │   ├── auth.py           # JWT issue/verify, bcrypt hashing, role-check decorators
+│   │   ├── models.py         # Hospitals, users/staff, patients, TB episodes, doses, labs, wards, beds, admissions, appointments, visits, files
+│   │   ├── clinical.py       # Adherence, missed streaks, needs-attention list (one place)
+│   │   ├── auth.py           # JWT, bcrypt, the role permission table and per-hospital scoping
 │   │   └── routes/           # One blueprint per resource (auth, admin, patients, dose-logs, ...)
 │   ├── migrations/           # Alembic schema migration history
 │   ├── wsgi.py               # Entrypoint (`app = create_app()`)
-│   ├── seed.py                # Demo facilities/patients/staff/admin for local dev
+│   ├── seed/                 # flask seed-network: five hospitals with their own staff and patients
+│   ├── tests/                # pytest: tenancy, roles and workflows on a fresh database
 │   └── requirements.txt
 │
 ├── frontend/                 # React & Vite Single Page Application
@@ -80,7 +97,7 @@ clinvia/
 
 | Layer | Technologies |
 |---|---|
-| **Frontend** | React 19, Vite, Tailwind CSS, React Router v7, Leaflet, Chart.js, Lucide Icons |
+| **Frontend** | React 19, Vite, Tailwind CSS, React Router v7, Leaflet, Lucide Icons (charts are hand-drawn SVG) |
 | **Backend** | Python, Flask, Flask-SQLAlchemy, Flask-Migrate (Alembic), PyJWT, bcrypt |
 | **Database** | PostgreSQL, hosted on Supabase |
 | **Hosting** | Vercel (frontend), Render (backend) |
@@ -112,9 +129,10 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env        # set DATABASE_URL, JWT_SECRET, FRONTEND_URL
+export FLASK_APP=wsgi.py
 flask db upgrade            # applies migrations, creates all tables
-python seed.py               # optional: demo facilities/patients
-python wsgi.py                # starts server on http://localhost:5000
+flask seed-network          # optional: the five seeded hospitals (see below)
+python wsgi.py              # starts server on http://localhost:5000
 ```
 
 See [`backend/README.md`](./backend/README.md) for schema migration instructions.
@@ -125,6 +143,17 @@ cd frontend
 cp .env.example .env
 npm install
 npm run dev       # Starts Vite dev server on http://localhost:5173
+```
+
+#### 3. Seeded hospitals
+`flask seed-network` loads five hospitals (Kenyatta, Kiambu, Nakuru, Machakos, Thika), each with its own staff, wards, patients, appointments and walk-ins. Staff sign in at `<hospital>.clinvia.health` (e.g. `amina.hassan@knh.clinvia.health`); the network administrator at `clinvia.health`. Passwords come from `SEED_PASSWORD_*` in `backend/.env` and are never committed.
+
+Re-running it resets only those five hospitals, so hospitals registered in the app keep their data. Dates are relative to the day it runs; re-run it before a presentation so "today" looks current. Take a `pg_dump` before running it against a shared database.
+
+#### 4. Tests
+```bash
+cd backend && pip install -r requirements-dev.txt
+python -m pytest tests      # creates and wipes a local clinvia_test database (TEST_DATABASE_URL)
 ```
 
 ---
