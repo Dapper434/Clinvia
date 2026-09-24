@@ -1,194 +1,57 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
+import AuthLayout, { Loader } from '../components/auth/AuthLayout.jsx'
+import { Check } from '../components/ui/icons.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { homePathForRole } from '../utils/roles.js'
-import { PORTAL_THEMES } from '../utils/portalThemes.js'
-import { Activity, AlertCircle, ArrowRight } from 'lucide-react'
-import AuthHeader from '../components/auth/AuthHeader.jsx'
-import AuthField from '../components/auth/AuthField.jsx'
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const MIN_PASSWORD_LENGTH = 8
 
 export default function SignUpPatient() {
-  const theme = PORTAL_THEMES.patient
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [linkId, setLinkId] = useState('')
-  const [errors, setErrors] = useState({})
+  const { user, role, signUpPatient, loading } = useAuth()
+  const [f, setF] = useState({ linkCode: '', fullName: '', email: '', phone: '', password: '', confirm: '' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const { user, role, signUpPatient, loading } = useAuth()
-  const navigate = useNavigate()
+  if (loading) return <Loader />
+  if (user) return <Navigate to={homePathForRole(role)} replace />
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
 
-  useEffect(() => {
-    if (user) {
-      navigate(homePathForRole(role), { replace: true })
-    }
-  }, [user, role, navigate])
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-900">
-        <div className="flex flex-col items-center gap-3">
-          <Activity className="h-8 w-8 animate-pulse text-teal-400" />
-          <p className="text-sm font-medium text-slate-400">Loading Clinvia…</p>
-        </div>
-      </div>
-    )
-  }
-
-  function validate() {
-    const v = {}
-    if (!fullName.trim()) v.fullName = 'Full name is required'
-    if (!email.trim()) v.email = 'Email address is required'
-    else if (!EMAIL_RE.test(email.trim())) v.email = 'Enter a valid email address'
-    if (!password) v.password = 'Password is required'
-    else if (password.length < MIN_PASSWORD_LENGTH)
-      v.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
-    if (!confirm) v.confirm = 'Please confirm your password'
-    else if (password !== confirm) v.confirm = 'Passwords do not match'
-    if (!linkId.trim()) v.linkId = 'Patient Reference ID is required'
-    return v
-  }
-
-  async function handleSubmit(e) {
+  async function submit(e) {
     e.preventDefault()
-    const v = validate()
-    setErrors(v)
-    if (Object.keys(v).length > 0) return
-    setError('')
+    if (!f.fullName.trim() || !/^\S+@\S+\.\S+$/.test(f.email)) {
+      setError('Add your full name and a valid email.')
+      return
+    }
+    if (f.password !== f.confirm) {
+      setError("The passwords don't match.")
+      return
+    }
     setBusy(true)
-
+    setError('')
     try {
-      const res = await signUpPatient(email.trim(), password, fullName.trim(), null, linkId.trim())
-      if (res?.error) {
-        throw new Error(res.error.message || 'Registration failed')
-      }
+      await signUpPatient({ fullName: f.fullName.trim(), email: f.email.trim(), phone: f.phone, password: f.password, linkCode: f.linkCode.trim() })
     } catch (err) {
-      setError(err.message || 'Could not create your account')
-    } finally {
+      setError(err.message)
       setBusy(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4 py-12">
-      <div className="w-full max-w-md">
-        <AuthHeader icon={theme.icon} accent={theme.accent} />
-
-        <div className="rounded-2xl border border-slate-800 bg-slate-800/80 p-8 shadow-2xl backdrop-blur-xl">
-          <h2 className="mb-1 text-xl font-semibold text-white">Create a patient account</h2>
-          <p className="mb-6 text-xs text-slate-400">{theme.subtitle}</p>
-
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            <AuthField
-              id="linkId"
-              label="Patient Reference ID"
-              icon="id"
-              value={linkId}
-              onChange={setLinkId}
-              error={errors.linkId}
-              hint="Enter the Patient Reference ID your clinic gave you at enrollment."
-              placeholder="e.g. 5f3a…c92b"
-              autoComplete="off"
-              required
-              focusClasses={theme.accent.inputFocus}
-            />
-
-            <AuthField
-              id="fullName"
-              label="Full Name"
-              icon="user"
-              value={fullName}
-              onChange={setFullName}
-              error={errors.fullName}
-              placeholder="e.g. James Mwangi"
-              autoComplete="name"
-              required
-              focusClasses={theme.accent.inputFocus}
-            />
-
-            <AuthField
-              id="email"
-              label="Email Address"
-              type="email"
-              icon="mail"
-              value={email}
-              onChange={setEmail}
-              error={errors.email}
-              placeholder={theme.emailPlaceholder}
-              autoComplete="email"
-              required
-              focusClasses={theme.accent.inputFocus}
-            />
-
-            <AuthField
-              id="password"
-              label="Password"
-              type="password"
-              icon="lock"
-              value={password}
-              onChange={setPassword}
-              error={errors.password}
-              hint={`At least ${MIN_PASSWORD_LENGTH} characters`}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              required
-              focusClasses={theme.accent.inputFocus}
-              toggleable
-            />
-
-            <AuthField
-              id="confirm"
-              label="Confirm Password"
-              type="password"
-              icon="lock"
-              value={confirm}
-              onChange={setConfirm}
-              error={errors.confirm}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              required
-              focusClasses={theme.accent.inputFocus}
-              toggleable
-            />
-
-            {error && (
-              <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={busy}
-              className={`group flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-slate-950 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 ${theme.accent.button}`}
-            >
-              {busy ? (
-                <span>Creating account…</span>
-              ) : (
-                <>
-                  <span>Create Account</span>
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 border-t border-slate-700/60 pt-4 text-center">
-            <p className="text-xs text-slate-400">
-              Already have an account?{' '}
-              <Link to={theme.loginPath} className={`font-semibold ${theme.accent.link}`}>
-                Log in
-              </Link>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AuthLayout
+      title="Create a patient account"
+      lead="Your clinic gives you a link code so your account opens your own record. You can also add it later."
+      footer={<>Already have an account? <Link className="link" to="/login/patient">Sign in</Link></>}
+    >
+      <form className="fields" style={{ gridTemplateColumns: '1fr' }} onSubmit={submit} noValidate>
+        <div className="field"><label htmlFor="su-code">Link code from your clinic</label>
+          <input id="su-code" value={f.linkCode} onChange={set('linkCode')} placeholder="e.g. K7M4-QX2P" autoComplete="off" style={{ textTransform: 'uppercase' }} />
+          <small>Printed on your treatment card, or ask at reception</small></div>
+        <div className="field"><label htmlFor="su-n">Full name <em>*</em></label><input id="su-n" value={f.fullName} onChange={set('fullName')} autoComplete="name" /></div>
+        <div className="field"><label htmlFor="su-e">Email <em>*</em></label><input id="su-e" type="email" value={f.email} onChange={set('email')} autoComplete="email" /></div>
+        <div className="field"><label htmlFor="su-p">Phone</label><input id="su-p" type="tel" value={f.phone} onChange={set('phone')} autoComplete="tel" /></div>
+        <div className="field"><label htmlFor="su-pw">Password <em>*</em></label><input id="su-pw" type="password" value={f.password} onChange={set('password')} autoComplete="new-password" /><small>At least 8 characters, with a number or symbol</small></div>
+        <div className="field"><label htmlFor="su-pc">Password again <em>*</em></label><input id="su-pc" type="password" value={f.confirm} onChange={set('confirm')} autoComplete="new-password" /></div>
+        {error ? <p className="warn" role="alert">{error}</p> : null}
+        <button className="btn primary" type="submit" disabled={busy} style={{ justifySelf: 'start' }}><Check />Create account</button>
+      </form>
+    </AuthLayout>
   )
 }
