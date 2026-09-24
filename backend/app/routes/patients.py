@@ -1,11 +1,26 @@
 from flask import Blueprint, g, jsonify, request
 
-from ..auth import authenticate_token, hash_password, require_hospital
+from ..auth import HOSPITAL_ROLES, authenticate_token, hash_password, require_hospital
 from ..extensions import db
 from ..models import Contact, DoseLog, LabResult, Patient, User
 from ..utils import parse_date
 
 bp = Blueprint("patients", __name__, url_prefix="/api/patients")
+
+
+@bp.get("/doctors")
+@authenticate_token
+@require_hospital
+def list_doctors():
+    """Minimal staff directory for assigning a doctor to a patient.
+
+    Deliberately not admin-only (any hospital-role user needs this to
+    populate the assignment dropdown when creating/editing a patient) and
+    deliberately minimal (id/name/role only, not the full admin staff-
+    management payload).
+    """
+    doctors = User.query.filter(User.role.in_(HOSPITAL_ROLES)).order_by(User.full_name.asc()).all()
+    return jsonify([{"id": d.id, "fullName": d.full_name, "role": d.role} for d in doctors])
 
 
 @bp.get("")
@@ -15,12 +30,15 @@ def get_patients():
     search = request.args.get("search")
     status = request.args.get("status")
     facility = request.args.get("facility")
+    assigned_to_me = request.args.get("assigned_to_me")
 
     query = Patient.query
     if status and status != "all":
         query = query.filter(Patient.status == status)
     if facility and facility != "all":
         query = query.filter(Patient.facility == facility)
+    if assigned_to_me == "true":
+        query = query.filter(Patient.assigned_doctor_id == g.user["id"])
     if search and search.strip():
         term = f"%{search.strip().lower()}%"
         query = query.filter(
@@ -111,6 +129,7 @@ def create_patient():
         lat=parse_float(body.get("lat")),
         lng=parse_float(body.get("lng")),
         registered_by=g.user.get("id"),
+        assigned_doctor_id=body.get("assigned_doctor_id") or None,
     )
     db.session.add(patient)
     db.session.commit()
@@ -159,6 +178,8 @@ def update_patient(patient_id):
         patient.mdr_flag = bool(body["mdr_flag"])
     patient.lat = parse_float(body.get("lat"))
     patient.lng = parse_float(body.get("lng"))
+    if "assigned_doctor_id" in body:
+        patient.assigned_doctor_id = body.get("assigned_doctor_id") or None
 
     db.session.commit()
     return jsonify(patient.to_dict())

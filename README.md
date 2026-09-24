@@ -19,10 +19,11 @@ Admins get a bird's-eye view of the hospital: staff accounts, patient counts, la
 - **DOT adherence tracking** — daily dose logging, a calendar view, adherence percentages, and an alert when a patient misses doses for 3 days running.
 - **Lab results** — GeneXpert, sputum smear, X-ray, and culture results, each with a clear outcome.
 - **Contact tracing** — register household contacts and track their screening status.
+- **Care team** — assign a doctor to each patient; every staff member gets a profile page listing the patients assigned to them.
 - **Analytics & export** — charts for treatment outcomes and case trends, plus one-click CSV export for reporting.
 
 ### 📱 Patient Portal
-Patients check in on their own treatment: a one-tap daily dose log and a visual calendar of their adherence over time.
+Patients check in on their own treatment: a one-tap daily dose log, adherence stats, their lab results, and a visual calendar of their adherence over time. A separate profile page shows their full personal and clinical details along with their assigned doctor.
 
 ### 🗺️ GIS Mapping
 An interactive map (Leaflet + OpenStreetMap) shows where patients and facilities cluster — useful for spotting regional hotspots.

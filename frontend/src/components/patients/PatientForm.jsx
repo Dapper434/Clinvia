@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth.js'
-import { createPatientApi } from '../../api/patients.js'
+import { createPatientApi, getDoctorsApi } from '../../api/patients.js'
 import { registerPatientApi } from '../../api/auth.js'
 import { Copy, Check, UserPlus, Eye, EyeOff } from 'lucide-react'
 
@@ -19,6 +19,7 @@ const empty = {
   mdr_flag: false,
   lat: '',
   lng: '',
+  assigned_doctor_id: '',
   patientEmail: '',
   patientPassword: '',
 }
@@ -49,6 +50,21 @@ export default function PatientForm() {
   const [busy, setBusy] = useState(false)
   const [savedData, setSavedData] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [doctors, setDoctors] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    getDoctorsApi()
+      .then((data) => {
+        if (!cancelled) setDoctors(data ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setDoctors([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -89,6 +105,7 @@ export default function PatientForm() {
         mdr_flag: Boolean(form.mdr_flag),
         lat: form.lat === '' ? null : (Number.isFinite(Number(form.lat)) ? Number(form.lat) : null),
         lng: form.lng === '' ? null : (Number.isFinite(Number(form.lng)) ? Number(form.lng) : null),
+        assigned_doctor_id: form.assigned_doctor_id || null,
       }
 
       const patientData = await createPatientApi(payload)
@@ -312,6 +329,28 @@ export default function PatientForm() {
                 className="rounded"
               />
               <span className="text-gray-700">MDR-TB flag</span>
+            </label>
+          </div>
+        </section>
+
+        {/* Care team */}
+        <section>
+          <h3 className="text-sm font-semibold text-gray-900">Care team</h3>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm">
+              <span className="text-gray-600">Assigned doctor</span>
+              <select
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none ring-teal-600 focus:ring-2"
+                value={form.assigned_doctor_id}
+                onChange={(e) => update('assigned_doctor_id', e.target.value)}
+              >
+                <option value="">Unassigned</option>
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.fullName}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
         </section>

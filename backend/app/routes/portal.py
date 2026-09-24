@@ -4,7 +4,7 @@ from flask import Blueprint, g, jsonify, request
 
 from ..auth import authenticate_token
 from ..extensions import db
-from ..models import DoseLog, Patient, User
+from ..models import DoseLog, LabResult, Patient, User
 from ..utils import parse_date
 
 bp = Blueprint("portal", __name__, url_prefix="/api/patient-portal")
@@ -33,8 +33,15 @@ def get_my_treatment():
         db.session.commit()
 
     dose_logs = DoseLog.query.filter_by(patient_id=patient.id).order_by(DoseLog.date.asc()).all()
+    lab_results = LabResult.query.filter_by(patient_id=patient.id).order_by(LabResult.result_date.desc()).all()
 
-    return jsonify({"patient": patient.to_dict(), "doseLogs": [d.to_dict() for d in dose_logs]})
+    return jsonify(
+        {
+            "patient": patient.to_dict(),
+            "doseLogs": [d.to_dict() for d in dose_logs],
+            "labResults": [l.to_dict() for l in lab_results],
+        }
+    )
 
 
 @bp.post("/log-dose")

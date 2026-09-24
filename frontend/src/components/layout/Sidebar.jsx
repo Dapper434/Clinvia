@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
+  User,
   Users,
   Pill,
   Map,
@@ -57,6 +58,11 @@ export default function Sidebar({ open = false, onClose = () => {} }) {
               Dashboard
             </NavLink>
           )}
+
+          <NavLink to="/profile" className={linkClass} onClick={onClose}>
+            <User className="h-4 w-4 shrink-0" />
+            My profile
+          </NavLink>
 
           {isAdmin ? <p className={sectionLabel}>TB Program</p> : null}
           <NavLink to="/patients" className={linkClass} onClick={onClose}>

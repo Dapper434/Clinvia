@@ -5,6 +5,7 @@ import Topbar from './Topbar.jsx'
 
 const titles = {
   '/dashboard': 'Dashboard',
+  '/profile': 'My profile',
   '/patients': 'Patient registry',
   '/patients/new': 'Register patient',
   '/dose-log': 'Daily dose log',
