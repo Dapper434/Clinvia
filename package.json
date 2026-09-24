@@ -11,6 +11,6 @@
     "dev:backend": "cd backend && . venv/bin/activate && python wsgi.py",
     "dev:frontend": "npm run dev --workspace=frontend",
     "build:frontend": "npm run build --workspace=frontend",
-    "seed:backend": "cd backend && . venv/bin/activate && python seed.py"
+    "seed:backend": "cd backend && . venv/bin/activate && FLASK_APP=wsgi.py flask seed-network"
   }
 }
