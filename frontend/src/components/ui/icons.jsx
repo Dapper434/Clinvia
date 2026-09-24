@@ -10,7 +10,8 @@ export const Close = () => <S width="18" height="18" viewBox="0 0 24 24" strokeW
 export const Left = () => <S width="14" height="14" viewBox="0 0 24 24" strokeWidth="2.2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></S>
 export const Right = () => <S width="14" height="14" viewBox="0 0 24 24" strokeWidth="2.2" strokeLinecap="round"><path d="M9 6l6 6-6 6" /></S>
 export const Menu = () => <S width="16" height="16" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></S>
-export const Mark = () => <S width="16" height="16" viewBox="0 0 24 24" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></S>
+// Clinvia's pulse-line mark, the same as the favicon.
+export const Mark = () => <S width="18" height="18" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></S>
 
 const N = (props) => <S width="17" height="17" viewBox="0 0 24 24" strokeWidth="1.8" {...props} />
 export const NavDashboard = () => <N><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></N>
