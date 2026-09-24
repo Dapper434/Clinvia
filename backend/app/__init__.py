@@ -39,6 +39,8 @@ def create_app():
         labs,
         patients,
         portal,
+        push,
+        reminders,
         reports,
     )
 
@@ -52,6 +54,15 @@ def create_app():
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(reports.bp)
     app.register_blueprint(portal.bp)
+    app.register_blueprint(push.bp)
+    app.register_blueprint(reminders.bp)
+
+    @app.cli.command("send-reminders")
+    def send_reminders_command():
+        """Send any due dose reminders now (same logic as POST /api/reminders/run)."""
+        from .reminders import send_due_reminders
+
+        print(send_due_reminders())
 
     @app.get("/health")
     def health():

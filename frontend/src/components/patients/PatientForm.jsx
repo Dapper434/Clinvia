@@ -4,6 +4,7 @@ import { useAuth } from '../../context/useAuth.js'
 import { createPatientApi, getDoctorsApi } from '../../api/patients.js'
 import { registerPatientApi } from '../../api/auth.js'
 import { Copy, Check, UserPlus, Eye, EyeOff } from 'lucide-react'
+import { DOSE_TIME_OPTIONS, formatDoseTime } from '../../utils/doseTimes.js'
 
 const empty = {
   name: '',
@@ -20,6 +21,7 @@ const empty = {
   lat: '',
   lng: '',
   assigned_doctor_id: '',
+  dose_time: '',
   patientEmail: '',
   patientPassword: '',
 }
@@ -106,6 +108,7 @@ export default function PatientForm() {
         lat: form.lat === '' ? null : (Number.isFinite(Number(form.lat)) ? Number(form.lat) : null),
         lng: form.lng === '' ? null : (Number.isFinite(Number(form.lng)) ? Number(form.lng) : null),
         assigned_doctor_id: form.assigned_doctor_id || null,
+        dose_time: form.dose_time || null,
       }
 
       const patientData = await createPatientApi(payload)
@@ -348,6 +351,21 @@ export default function PatientForm() {
                 {doctors.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.fullName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="text-gray-600">Daily dose time (sets reminder)</span>
+              <select
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none ring-teal-600 focus:ring-2"
+                value={form.dose_time}
+                onChange={(e) => update('dose_time', e.target.value)}
+              >
+                <option value="">Standard (before breakfast)</option>
+                {DOSE_TIME_OPTIONS.map((t) => (
+                  <option key={t} value={t}>
+                    {formatDoseTime(t)}
                   </option>
                 ))}
               </select>

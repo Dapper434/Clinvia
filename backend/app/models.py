@@ -97,6 +97,9 @@ class Patient(db.Model):
     lng = db.Column(db.Float)
     registered_by = db.Column(UUID(as_uuid=False), db.ForeignKey("users.id"))
     assigned_doctor_id = db.Column(UUID(as_uuid=False), db.ForeignKey("users.id", ondelete="SET NULL"))
+    # Local wall-clock time (APP_TIMEZONE) the doctor wants the daily dose taken; null = default.
+    dose_time = db.Column(db.Time)
+    last_reminder_sent_on = db.Column(db.Date)
 
     assigned_doctor = db.relationship("User", foreign_keys=[assigned_doctor_id])
 
@@ -130,6 +133,7 @@ class Patient(db.Model):
             "lng": self.lng,
             "registered_by": self.registered_by,
             "assigned_doctor_id": self.assigned_doctor_id,
+            "dose_time": self.dose_time.strftime("%H:%M") if self.dose_time else None,
             "assigned_doctor": (
                 {
                     "id": self.assigned_doctor.id,
@@ -246,3 +250,21 @@ class Contact(db.Model):
             "screened_date": self.screened_date.isoformat() if self.screened_date else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class PushSubscription(db.Model):
+    """A browser's web-push endpoint for a user (one user can have several devices)."""
+
+    __tablename__ = "push_subscriptions"
+
+    id = db.Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    user_id = db.Column(UUID(as_uuid=False), db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    endpoint = db.Column(db.Text, nullable=False, unique=True)
+    p256dh = db.Column(db.Text, nullable=False)
+    auth = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (db.Index("push_subscriptions_user_idx", "user_id"),)
+
+    def subscription_info(self):
+        return {"endpoint": self.endpoint, "keys": {"p256dh": self.p256dh, "auth": self.auth}}

@@ -25,6 +25,9 @@ Admins get a bird's-eye view of the hospital: staff accounts, patient counts, la
 ### 📱 Patient Portal
 Patients check in on their own treatment: a one-tap daily dose log, adherence stats, their lab results, and a visual calendar of their adherence over time. A separate profile page shows their full personal and clinical details along with their assigned doctor.
 
+### 🔔 Dose Reminders
+Patients get a push notification on their phone at their dose time, even when Clinvia isn't open, as long as they haven't logged that day's dose yet. Messages are friendly and rotate daily ("Your pills called. They miss you. 💊"). First-line TB medicine is taken once a day on an empty stomach, so the standard reminder time is 7:00 AM, before breakfast; a patient's doctor can pick a different time from their patient page.
+
 ### 🗺️ GIS Mapping
 An interactive map (Leaflet + OpenStreetMap) shows where patients and facilities cluster — useful for spotting regional hotspots.
 
@@ -125,6 +128,18 @@ npm run dev       # Starts Vite dev server on http://localhost:5173
 ```
 
 ---
+
+### Dose reminders setup (one-time)
+Reminders use browser push notifications (free, no SMS provider needed). A GitHub Actions workflow (`.github/workflows/dose-reminders.yml`) wakes the backend every 30 minutes from 5:00 AM to 11:30 PM Nairobi time and asks it to send whatever is due.
+
+1. **Backend environment** (Render): set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CLAIM_EMAIL`, `REMINDER_CRON_SECRET`, and `APP_TIMEZONE=Africa/Nairobi`. For a fresh key pair, run this in `backend/` with the venv active:
+   ```bash
+   python -c "import base64,secrets;from cryptography.hazmat.primitives.asymmetric import ec;from cryptography.hazmat.primitives import serialization as s;k=ec.generate_private_key(ec.SECP256R1());e=lambda b:base64.urlsafe_b64encode(b).rstrip(b'=').decode();print('VAPID_PUBLIC_KEY='+e(k.public_key().public_bytes(s.Encoding.X962,s.PublicFormat.UncompressedPoint)));print('VAPID_PRIVATE_KEY='+e(k.private_numbers().private_value.to_bytes(32,'big')));print('REMINDER_CRON_SECRET='+secrets.token_urlsafe(32))"
+   ```
+2. **GitHub repo secrets** (Settings → Secrets and variables → Actions): `CLINVIA_API_URL` (your backend URL, no trailing slash) and `REMINDER_CRON_SECRET` (the same value as on the backend).
+3. **Patients** turn reminders on from the Dose Reminders card on *My treatment*. On iPhone, they need to add Clinvia to their Home Screen first (Share → Add to Home Screen) and open it from there. That's an Apple requirement for web push.
+
+To test without waiting for the schedule, open the repo's **Actions** tab → *Dose reminders* → *Run workflow*, or run `flask send-reminders` locally.
 
 ## 🌐 Live
 

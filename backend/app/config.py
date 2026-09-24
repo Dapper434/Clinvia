@@ -36,3 +36,12 @@ class Config:
 
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173,http://localhost:3000")
     DEBUG_SQL = os.environ.get("DEBUG_SQL", "false").lower() == "true"
+
+    # Web push dose reminders
+    VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+    VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+    VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:admin@clinvia.local")
+    REMINDER_CRON_SECRET = os.environ.get("REMINDER_CRON_SECRET", "")
+    APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Africa/Nairobi")
+    # First-line TB drugs are taken once daily on an empty stomach, i.e. before breakfast.
+    DEFAULT_DOSE_TIME = os.environ.get("DEFAULT_DOSE_TIME", "07:00")

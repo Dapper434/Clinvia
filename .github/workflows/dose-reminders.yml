@@ -1,0 +1,24 @@
+name: Dose reminders
+
+# The backend sleeps on Render's free tier, so reminders can't rely on an in-app
+# timer. This wakes it every 30 minutes and asks it to send whatever is due.
+on:
+  schedule:
+    # Every 30 min, 05:00-23:30 Nairobi time (UTC+3) = 02:00-20:30 UTC.
+    - cron: "0,30 2-20 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send due dose reminders
+        env:
+          API_URL: ${{ secrets.CLINVIA_API_URL }}
+          CRON_SECRET: ${{ secrets.REMINDER_CRON_SECRET }}
+        run: |
+          # --max-time covers Render's cold start (~30-60s) on the first call after it sleeps.
+          curl --fail-with-body --silent --show-error --max-time 120 --retry 2 --retry-delay 20 \
+            -X POST "$API_URL/api/reminders/run" \
+            -H "X-Cron-Secret: $CRON_SECRET"
