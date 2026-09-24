@@ -1,3 +1,5 @@
+@import './styles/clinvia.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,12 +7,13 @@
 html,
 body,
 #root {
-  height: 100%;
+  min-height: 100%;
 }
 
+/* clip, not hidden: hidden would turn body into its own scroll box and break sticky headers. */
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -18,6 +21,15 @@ body {
 }
 
 @media print {
+  .cv .side,
+  .cv .top .actions,
+  .cv .drawer,
+  .cv .scrim {
+    display: none !important;
+  }
+  .cv .app {
+    display: block;
+  }
   .no-print {
     display: none !important;
   }
