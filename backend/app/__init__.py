@@ -21,7 +21,7 @@ def create_app():
         app,
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With", "X-Hospital"],
         origins="*",
     )
 
@@ -30,32 +30,30 @@ def create_app():
         logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
     from .routes import (
-        admin,
+        admissions,
+        appointments,
         auth_routes,
-        contacts,
         dashboard,
-        dose_logs,
+        doses,
         facilities,
-        labs,
+        hospitals,
         patients,
         portal,
         push,
         reminders,
         reports,
+        staff,
     )
 
-    app.register_blueprint(auth_routes.bp)
-    app.register_blueprint(admin.bp)
-    app.register_blueprint(patients.bp)
-    app.register_blueprint(dose_logs.bp)
-    app.register_blueprint(labs.bp)
-    app.register_blueprint(contacts.bp)
-    app.register_blueprint(facilities.bp)
-    app.register_blueprint(dashboard.bp)
-    app.register_blueprint(reports.bp)
-    app.register_blueprint(portal.bp)
-    app.register_blueprint(push.bp)
-    app.register_blueprint(reminders.bp)
+    for module in (auth_routes, hospitals, dashboard, patients, appointments, admissions, doses,
+                   reports, staff, facilities, portal, push, reminders):
+        app.register_blueprint(module.bp)
+
+    from .auth import ScopeError
+
+    @app.errorhandler(ScopeError)
+    def scope_error(err):
+        return jsonify({"error": str(err)}), 400
 
     @app.cli.command("send-reminders")
     def send_reminders_command():
@@ -63,6 +61,17 @@ def create_app():
         from .reminders import send_due_reminders
 
         print(send_due_reminders())
+
+    @app.cli.command("seed-network")
+    def seed_network_command():
+        """Load (or reset) the five seeded hospitals. Hospitals registered in the app are untouched."""
+        from seed.generate import SeedError, run
+
+        print("Seeding the hospital network…")
+        try:
+            run()
+        except SeedError as err:
+            raise SystemExit(f"Seed stopped: {err}")
 
     @app.get("/health")
     def health():
@@ -80,7 +89,7 @@ def create_app():
         return jsonify(
             {
                 "name": "Clinvia REST API",
-                "version": "1.0.0",
+                "version": "2.0.0",
                 "status": "running",
                 "docs": "/api/docs",
                 "health": "/health",
@@ -89,6 +98,10 @@ def create_app():
 
     @app.errorhandler(404)
     def not_found(err):
+        from werkzeug.exceptions import NotFound
+
+        if err.description and err.description != NotFound.description:
+            return jsonify({"error": err.description}), 404
         return jsonify({"error": f"Endpoint not found: {request.method} {request.path}"}), 404
 
     @app.errorhandler(Exception)
