@@ -1,130 +1,79 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
+import { whichHospitalApi } from '../api/auth.js'
+import AuthLayout, { Loader } from '../components/auth/AuthLayout.jsx'
+import { Right } from '../components/ui/icons.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { homePathForRole } from '../utils/roles.js'
-import { PORTAL_THEMES } from '../utils/portalThemes.js'
-import { Activity, AlertCircle, ArrowRight } from 'lucide-react'
-import AuthHeader from '../components/auth/AuthHeader.jsx'
-import AuthField from '../components/auth/AuthField.jsx'
+
+const COPY = {
+  hospital: {
+    title: 'Staff sign-in',
+    lead: 'Use your hospital work email. It decides which hospital you sign in to.',
+    placeholder: 'firstname.lastname@yourhospital',
+    footer: <>Staff accounts are created by your hospital&apos;s administrator. <Link className="link" to="/login/patient">Patient sign-in</Link></>,
+  },
+  patient: {
+    title: 'Patient sign-in',
+    lead: 'Check in your doses, see your results and book appointments.',
+    placeholder: 'you@example.com',
+    footer: <>New here? <Link className="link" to="/signup/patient">Create a patient account</Link> · <Link className="link" to="/login/hospital">Staff sign-in</Link></>,
+  },
+}
 
 export default function Login({ portal = 'hospital' }) {
-  const theme = PORTAL_THEMES[portal] ?? PORTAL_THEMES.hospital
+  const copy = COPY[portal]
+  const { user, role, signIn, loading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const { user, role, signIn, loading } = useAuth()
-  const navigate = useNavigate()
+  const [where, setWhere] = useState(null)
 
+  // Tell staff which hospital their address belongs to while they type.
   useEffect(() => {
-    if (user) {
-      navigate(homePathForRole(role), { replace: true })
-    }
-  }, [user, role, navigate])
+    if (portal !== 'hospital' || !/@[^@\s]+\.[^@\s]+$/.test(email)) return undefined
+    const t = setTimeout(() => whichHospitalApi(email.trim()).then(setWhere).catch(() => setWhere(null)), 250)
+    return () => clearTimeout(t)
+  }, [email, portal])
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-900">
-        <div className="flex flex-col items-center gap-3">
-          <Activity className="h-8 w-8 animate-pulse text-teal-400" />
-          <p className="text-sm font-medium text-slate-400">Loading Clinvia…</p>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <Loader />
+  if (user) return <Navigate to={homePathForRole(role)} replace />
 
-  async function handleSubmit(e) {
+  async function submit(e) {
     e.preventDefault()
-    setError('')
     setBusy(true)
-
+    setError('')
     try {
-      const res = await signIn(portal, email.trim(), password)
-      if (res?.error) {
-        throw new Error(res.error.message || 'Invalid credentials')
-      }
+      await signIn(portal, email.trim(), password)
     } catch (err) {
-      setError(err.message || 'Invalid email or password')
-    } finally {
+      setError(err.message || "That email and password don't match an account.")
       setBusy(false)
     }
   }
 
+  const showWhere = portal === 'hospital' && where && /@[^@\s]+\.[^@\s]+$/.test(email)
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4 py-12">
-      <div className="w-full max-w-md">
-        {/* Logo and Header */}
-        <AuthHeader icon={theme.icon} accent={theme.accent} />
-
-        {/* Login Box */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-800/80 p-8 shadow-2xl backdrop-blur-xl">
-          <h2 className="mb-1 text-xl font-semibold text-white">{theme.label}</h2>
-          <p className="mb-6 text-xs text-slate-400">{theme.subtitle}</p>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <AuthField
-              id="email"
-              label="Email Address"
-              type="email"
-              icon="mail"
-              value={email}
-              onChange={setEmail}
-              placeholder={theme.emailPlaceholder}
-              autoComplete="email"
-              required
-              focusClasses={theme.accent.inputFocus}
-            />
-
-            <AuthField
-              id="password"
-              label="Password"
-              type="password"
-              icon="lock"
-              value={password}
-              onChange={setPassword}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              required
-              focusClasses={theme.accent.inputFocus}
-              toggleable
-            />
-
-            {error && (
-              <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={busy}
-              className={`group flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-slate-950 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 ${theme.accent.button}`}
-            >
-              {busy ? (
-                <span>Authenticating…</span>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 space-y-2 border-t border-slate-700/60 pt-4 text-center">
-            {theme.signupPath ? (
-              <p className="text-xs text-slate-400">
-                Don't have an account?{' '}
-                <Link to={theme.signupPath} className={`font-semibold ${theme.accent.link}`}>
-                  Sign up
-                </Link>
-              </p>
-            ) : null}
-            <p className="text-xs text-slate-500">{theme.footer}</p>
-          </div>
+    <AuthLayout title={copy.title} lead={copy.lead} footer={copy.footer}>
+      <form className="fields" style={{ gridTemplateColumns: '1fr' }} onSubmit={submit}>
+        <div className="field">
+          <label htmlFor="email">Email</label>
+          <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={copy.placeholder} required />
+          {showWhere ? (
+            <small style={{ color: where.kind === 'unknown' ? 'var(--amber)' : 'var(--teal-2)' }}>
+              {where.kind === 'unknown' ? 'This address isn’t at a hospital on Clinvia. Use your work email.' : `Signing in to ${where.name}`}
+            </small>
+          ) : null}
         </div>
-      </div>
-    </div>
+        <div className="field">
+          <label htmlFor="password">Password</label>
+          <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </div>
+        {error ? <p className="warn" role="alert">{error}</p> : null}
+        <button className="btn primary" type="submit" disabled={busy} style={{ justifySelf: 'start' }}>
+          {busy ? 'Signing in…' : <>Sign in<Right /></>}
+        </button>
+      </form>
+    </AuthLayout>
   )
 }
