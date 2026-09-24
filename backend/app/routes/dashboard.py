@@ -1,131 +1,237 @@
-from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import timedelta
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, g, jsonify, request
+from sqlalchemy import func, select
 
-from ..auth import authenticate_token, require_hospital
-from ..models import DoseLog, Patient
+from ..auth import authenticate_token, can, is_network_view, require, scope_ids
+from ..clinical import (
+    active_episodes,
+    adherence,
+    attention,
+    clinic_now,
+    clinic_today,
+    day_bounds,
+    dose_days,
+    dose_maps,
+    local,
+    short_facility,
+    weekly_admissions,
+)
+from ..extensions import db
+from ..lookups import names_by_id, patient_brief
+from ..models import Appointment, Bed, Facility, Patient, TbEpisode, User, Visit, Ward
 
-bp = Blueprint("dashboard", __name__, url_prefix="/api/dashboard")
-
-
-def _calc_pct(logs, treatment_start):
-    if not treatment_start:
-        return 0
-    diff_days = (date.today() - treatment_start).days + 1
-    window_days = min(max(1, diff_days), 180)
-    if window_days <= 0:
-        return 0
-    taken_count = sum(1 for log in logs if log.taken)
-    return min(100, round((taken_count / window_days) * 100))
-
-
-def _check_ltfu(logs):
-    if not logs:
-        return True
-    last = max(log.date for log in logs)
-    return (date.today() - last).days >= 14
+bp = Blueprint("dashboard", __name__, url_prefix="/api")
 
 
-def _missed_in_window(logs, days=3):
-    by_date = {log.date: log for log in logs}
-    missed = 0
-    for i in range(days):
-        d = date.today() - timedelta(days=i)
-        log = by_date.get(d)
-        if not log or not log.taken:
-            missed += 1
-    return missed
+def _mine():
+    user = g.current_user
+    return user.role == "doctor" and request.args.get("mine") in ("1", "true")
 
 
-@bp.get("/stats")
-@authenticate_token
-@require_hospital
-def get_dashboard_stats():
-    patients = Patient.query.order_by(Patient.created_at.desc()).all()
-    dose_logs = DoseLog.query.order_by(DoseLog.date.asc()).all()
-
-    logs_by_patient = defaultdict(list)
-    for log in dose_logs:
-        logs_by_patient[log.patient_id].append(log)
-
-    active = [p for p in patients if p.status == "active"]
-
-    current_month_prefix = date.today().strftime("%Y-%m")
-    new_this_month = sum(
-        1 for p in patients if p.created_at and p.created_at.strftime("%Y-%m") == current_month_prefix
+def schedule_for(scope, day, doctor_id=None):
+    lo, hi = day_bounds(day)
+    q = (
+        db.session.query(Appointment, Patient)
+        .join(Patient, Patient.id == Appointment.patient_id)
+        .filter(Appointment.facility_id.in_(scope), Appointment.scheduled_at >= lo, Appointment.scheduled_at < hi)
     )
-
-    adherence_sum = 0
-    adherence_n = 0
-    high_risk = 0
-    ltfu = 0
-    alerts = []
-
-    for patient in active:
-        logs = logs_by_patient.get(patient.id, [])
-        pct = _calc_pct(logs, patient.treatment_start)
-        adherence_sum += pct
-        adherence_n += 1
-        if pct < 80:
-            high_risk += 1
-        if _check_ltfu(logs):
-            ltfu += 1
-        missed = _missed_in_window(logs, 3)
-        if missed > 0:
-            alerts.append({"patientId": patient.id, "name": patient.name, "missed": missed})
-
-    alerts.sort(key=lambda a: a["missed"], reverse=True)
-    avg_adherence = round(adherence_sum / adherence_n) if adherence_n else 0
-
-    outcome_counts = {"active": 0, "completed": 0, "lost": 0, "died": 0}
-    for patient in patients:
-        if patient.status in outcome_counts:
-            outcome_counts[patient.status] += 1
-
-    today = date.today()
-    bar_labels, bar_values = [], []
-    for i in range(5, -1, -1):
-        year = today.year
-        month = today.month - i
-        while month <= 0:
-            month += 12
-            year -= 1
-        prefix = f"{year:04d}-{month:02d}"
-        label = datetime(year, month, 1).strftime("%b %Y")
-        bar_labels.append(label)
-        bar_values.append(
-            sum(1 for p in patients if p.created_at and p.created_at.strftime("%Y-%m") == prefix)
-        )
-
-    day_labels, day_ratios = [], []
-    logs_by_date = defaultdict(list)
-    for log in dose_logs:
-        logs_by_date[log.date].append(log)
-    for i in range(29, -1, -1):
-        d = today - timedelta(days=i)
-        day_labels.append(d.strftime("%b %-d"))
-        rows = logs_by_date.get(d, [])
-        if not rows:
-            day_ratios.append(0)
-        else:
-            taken = sum(1 for r in rows if r.taken)
-            day_ratios.append(round((taken / len(rows)) * 100))
-
-    return jsonify(
+    if doctor_id:
+        q = q.filter(Appointment.doctor_id == doctor_id)
+    rows = q.order_by(Appointment.scheduled_at, Appointment.id).all()
+    staff = names_by_id(a.doctor_id for a, _ in rows)
+    facilities = {f.id: f.name for f in Facility.query.all()}
+    return [
         {
-            "activeCount": len(active),
-            "newThisMonth": new_this_month,
-            "avgAdherence": avg_adherence,
-            "highRisk": high_risk,
-            "ltfu": ltfu,
-            "alerts": alerts,
-            "outcomeCounts": outcome_counts,
-            "barLabels": bar_labels,
-            "barValues": bar_values,
-            "dayLabels": day_labels,
-            "dayRatios": day_ratios,
-            "patients": [p.to_dict() for p in patients],
-            "doseLogs": [d.to_dict() for d in dose_logs],
+            "id": a.id,
+            "at": local(a.scheduled_at).strftime("%Y-%m-%dT%H:%M"),
+            "time": local(a.scheduled_at).strftime("%H:%M"),
+            "patient": patient_brief(p),
+            "reason": a.reason,
+            "doctor": staff[a.doctor_id].full_name if a.doctor_id in staff else None,
+            "doctorCode": staff[a.doctor_id].staff_code if a.doctor_id in staff else None,
+            "via": a.booked_via,
+            "status": a.status,
+            "hospital": facilities.get(a.facility_id),
         }
+        for a, p in rows
+    ]
+
+
+def beds_by_ward(scope, prefix_hospital=False):
+    wards = (
+        Ward.query.filter(Ward.facility_id.in_(scope))
+        .join(Facility, Facility.id == Ward.facility_id)
+        .order_by(Facility.name, Ward.sort_order, Ward.name)
+        .all()
     )
+    counts = {}
+    for ward_id, status, n in db.session.execute(
+        select(Bed.ward_id, Bed.status, func.count()).where(Bed.ward_id.in_([w.id for w in wards])).group_by(Bed.ward_id, Bed.status)
+    ):
+        counts.setdefault(ward_id, {})[status] = n
+    facilities = {f.id: f.name for f in Facility.query.all()}
+    out = []
+    for w in wards:
+        c = counts.get(w.id, {})
+        out.append({
+            "id": w.id,
+            "name": (f"{short_facility(facilities[w.facility_id])}: " if prefix_hospital else "") + w.name,
+            "ward": w.name,
+            "hospital": facilities[w.facility_id],
+            "capacity": sum(c.values()) or w.capacity,
+            "occupied": c.get("occupied", 0),
+            "cleaning": c.get("cleaning", 0),
+            "reserved": c.get("reserved", 0),
+            "available": c.get("available", 0),
+        })
+    return out
+
+
+def queue_summary(scope, now):
+    lo, hi = day_bounds(now.date())
+    visits = Visit.query.filter(Visit.facility_id.in_(scope), Visit.arrived_at >= lo, Visit.arrived_at < hi).all()
+    waiting = [v for v in visits if v.status == "waiting"]
+    return {
+        "total": len(visits),
+        "waiting": len(waiting),
+        "inConsultation": sum(1 for v in visits if v.status == "in_consultation"),
+        "completed": sum(1 for v in visits if v.status == "completed"),
+        "longestWaitMin": max((int((now - v.arrived_at).total_seconds() // 60) for v in waiting), default=0),
+        "urgentWaiting": sum(1 for v in waiting if v.priority == "urgent"),
+    }
+
+
+@bp.get("/dashboard")
+@authenticate_token
+@require("dashboard.view")
+def dashboard():
+    user = g.current_user
+    role = user.role
+    scope = scope_ids()
+    now = clinic_now()
+    today = now.date()
+    network = is_network_view()
+    doctor_id = user.id if _mine() else None
+    clinical = can(role, "patients.clinical")
+
+    schedule = schedule_for(scope, today, doctor_id)
+    lo_lw, hi_lw = day_bounds(today - timedelta(days=7))
+    q_lw = Appointment.query.filter(
+        Appointment.facility_id.in_(scope), Appointment.scheduled_at >= lo_lw, Appointment.scheduled_at < hi_lw
+    )
+    if doctor_id:
+        q_lw = q_lw.filter(Appointment.doctor_id == doctor_id)
+    wards = beds_by_ward(scope, prefix_hospital=network)
+    doctors = User.query.filter(User.facility_id.in_(scope), User.role == "doctor", User.is_active).all()
+    eps = active_episodes(scope)
+    queue = queue_summary(scope, now)
+
+    payload = {
+        "today": today.isoformat(),
+        "now": now.strftime("%H:%M"),
+        "network": network,
+        "mine": bool(doctor_id),
+        "stats": {
+            "appointmentsToday": len(schedule),
+            "sameDayLastWeek": q_lw.count(),
+            "walkIns": queue["total"],
+            "waiting": queue["waiting"],
+            "bedsOccupied": sum(w["occupied"] for w in wards),
+            "beds": sum(w["capacity"] for w in wards),
+            "bedsFree": sum(w["available"] for w in wards),
+            "wards": len(wards),
+            "activeTb": len(eps),
+            "mdr": sum(1 for e, _ in eps if e.mdr_flag),
+            "doctors": len(doctors),
+            "doctorsOnDuty": sum(1 for d in doctors if d.duty_status == "on_duty"),
+            "doctorsOnLeave": [d.full_name for d in doctors if d.duty_status == "on_leave"],
+        },
+        "schedule": schedule,
+        "queue": queue,
+        "bedsByWard": wards,
+        "weeklyAdmissions": weekly_admissions(scope, today),
+    }
+
+    if role == "receptionist":
+        return jsonify(payload)
+    if role == "executive":
+        # Executives get today's workload per doctor, not the patient list.
+        per = {}
+        for row in schedule:
+            d = per.setdefault(row["doctor"], {"doctor": row["doctor"], "booked": 0, "seen": 0})
+            d["booked"] += 1
+            d["seen"] += row["status"] == "completed"
+        payload["schedule"] = []
+        payload["scheduleByDoctor"] = sorted(per.values(), key=lambda d: -d["booked"])
+
+    att = attention(scope, today, doctor_id)
+    if clinical:
+        payload["attention"] = att
+    else:
+        # Executives see how many patients need attention and why, not who they are.
+        payload["attention"] = None
+        payload["attentionSummary"] = {
+            "total": len(att),
+            "missed": sum(1 for a in att if a["kind"] == "missed"),
+            "notConverted": sum(1 for a in att if a["kind"] == "not_converted"),
+            "pending": sum(1 for a in att if a["kind"] == "pending_genexpert"),
+        }
+
+    payload["doseDays"] = dose_days(scope, today)
+    logs = dose_maps([p.id for _, p in eps], since=today - timedelta(days=31))
+    adh = sorted(
+        ({"code": p.patient_code, "name": p.name, "value": adherence(logs.get(p.id, {}), today)} for _, p in eps),
+        key=lambda r: (r["value"] is None, r["value"] if r["value"] is not None else 0),
+    )
+    if clinical:
+        payload["adherence"] = adh
+    else:
+        vals = [r["value"] for r in adh if r["value"] is not None]
+        payload["adherenceBands"] = {
+            "good": sum(1 for v in vals if v >= 80),
+            "watch": sum(1 for v in vals if 60 <= v < 80),
+            "poor": sum(1 for v in vals if v < 60),
+            "average": round(sum(vals) / len(vals)) if vals else None,
+        }
+
+    outcomes = dict(db.session.execute(
+        select(TbEpisode.status, func.count())
+        .join(Patient, Patient.id == TbEpisode.patient_id)
+        .where(Patient.facility_id.in_(scope), TbEpisode.status != "active")
+        .group_by(TbEpisode.status)
+    ).all())
+    payload["outcomes"] = outcomes
+
+    if clinical:
+        recent = Patient.query.filter(Patient.facility_id.in_(scope)).order_by(Patient.created_at.desc()).limit(5).all()
+        payload["recent"] = [
+            {**patient_brief(p), "registered": local(p.created_at).date().isoformat()} for p in recent
+        ]
+    return jsonify(payload)
+
+
+@bp.get("/attention")
+@authenticate_token
+@require("patients.clinical")
+def attention_list():
+    doctor_id = g.current_user.id if _mine() else None
+    return jsonify(attention(scope_ids(), clinic_today(), doctor_id))
+
+
+@bp.get("/badges")
+@authenticate_token
+@require("dashboard.view")
+def badges():
+    """Counts for the sidebar: patients needing attention, and doses still to log today."""
+    role = g.current_user.role
+    scope = scope_ids()
+    today = clinic_today()
+    out = {"attention": None, "dosesLeft": None}
+    if can(role, "patients.clinical"):
+        out["attention"] = len(attention(scope, today))
+    if can(role, "doses.view"):
+        eps = active_episodes(scope)
+        logged = dose_maps([p.id for _, p in eps], since=today)
+        out["dosesLeft"] = sum(1 for e, p in eps if e.treatment_start <= today and today not in logged.get(p.id, {}))
+    return jsonify(out)
