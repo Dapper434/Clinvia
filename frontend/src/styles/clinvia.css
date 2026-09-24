@@ -17,7 +17,7 @@
 .cv .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
 .cv .side{background:var(--surface);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow-y:auto}
 .cv .brand{display:flex;align-items:center;gap:10px;padding:0 8px;text-decoration:none}
-.cv .brand-mark{width:30px;height:30px;border-radius:8px;background:var(--teal);display:grid;place-items:center;flex-shrink:0}
+.cv .brand-mark{width:30px;height:30px;border-radius:8px;background:var(--teal-wash);border:1px solid rgba(14,124,112,.2);color:var(--teal);display:grid;place-items:center;flex-shrink:0}
 .cv .brand b{font-size:16px;letter-spacing:-.01em}
 .cv .brand small{display:block;color:var(--ink-3);font-size:12px;line-height:1.2}
 .cv .nav-group p{font-size:12px;color:var(--ink-3);padding:0 10px 6px;font-weight:500}
