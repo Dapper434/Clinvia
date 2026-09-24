@@ -35,6 +35,7 @@ export default function MyProfile() {
       setError('')
       setLoading(true)
       const { patient: p, labResults: labs, reminder: rem } = await getMyTreatmentApi()
+      if (!p) throw new Error('Connect your clinic record from My treatment first.')
       setPatient(p ?? null)
       setLabResults(labs ?? [])
       setReminder(rem ?? null)
@@ -89,10 +90,10 @@ export default function MyProfile() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold text-gray-900">{patient.name}</h1>
-              <StatusBadge status={patient.status} />
+              {patient.status ? <StatusBadge status={patient.status} /> : null}
             </div>
             <p className="mt-1 text-sm text-gray-600">
-              Patient ID: <span className="font-mono text-xs text-gray-800">{patient.id}</span>
+              Patient code: <span className="font-semibold text-gray-800">{patient.code}</span>
             </p>
           </div>
         </div>
@@ -120,7 +121,7 @@ export default function MyProfile() {
               Clinical Details
             </h2>
             <div className="mt-2">
-              <InfoRow label="TB Type" value={patient.tb_type?.replace('-', ' ')} />
+              <InfoRow label="TB Type" value={patient.tb_type?.replace('_', '-')} />
               <InfoRow label="Regimen" value={patient.regimen} />
               <InfoRow label="Treatment Start" value={patient.treatment_start} />
               <InfoRow
@@ -153,8 +154,8 @@ export default function MyProfile() {
               <div className="mt-3 space-y-2">
                 {labResults.map((r) => (
                   <div key={r.id} className="flex items-center justify-between text-sm">
-                    <span className="capitalize text-gray-600">{r.test_type?.replaceAll('_', ' ')}</span>
-                    <span className="text-gray-500">{r.result_date}</span>
+                    <span className="text-gray-600">{r.test}</span>
+                    <span className="text-gray-500">{r.collected}</span>
                     <span className="capitalize font-medium text-gray-900">{r.result}</span>
                   </div>
                 ))}
