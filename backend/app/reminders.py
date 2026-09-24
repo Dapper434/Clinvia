@@ -15,7 +15,7 @@ from flask import current_app
 from pywebpush import WebPushException, webpush
 
 from .extensions import db
-from .models import DoseLog, Patient, PushSubscription
+from .models import DoseLog, Patient, PushSubscription, TbEpisode
 
 REMINDER_URL = "/my-treatment"
 
@@ -118,7 +118,11 @@ def send_due_reminders(now=None):
         "pruned": 0,
     }
 
-    patients = Patient.query.filter(Patient.status == "active", Patient.user_id.isnot(None)).all()
+    patients = (
+        Patient.query.join(TbEpisode, TbEpisode.patient_id == Patient.id)
+        .filter(TbEpisode.status == "active", Patient.user_id.isnot(None))
+        .all()
+    )
     for patient in patients:
         summary["checked"] += 1
         if now.time() < effective_dose_time(patient):
