@@ -22,6 +22,8 @@ const DoseLog = lazy(() => import('./pages/DoseLog.jsx'))
 const CaseMap = lazy(() => import('./pages/CaseMap.jsx'))
 const Reports = lazy(() => import('./pages/Reports.jsx'))
 const PatientPortal = lazy(() => import('./pages/PatientPortal.jsx'))
+const MyProfilePatient = lazy(() => import('./pages/patient/MyProfile.jsx'))
+const Profile = lazy(() => import('./pages/Profile.jsx'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard.jsx'))
 const StaffManagement = lazy(() => import('./pages/admin/StaffManagement.jsx'))
 
@@ -61,6 +63,7 @@ export default function App() {
         <Route element={<PatientRoute />}>
           <Route element={<PatientLayout />}>
             <Route path="/my-treatment" element={<PatientPortal />} />
+            <Route path="/my-profile" element={<MyProfilePatient />} />
           </Route>
         </Route>
 
@@ -68,6 +71,7 @@ export default function App() {
         <Route element={<HospitalRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/patients" element={<Patients />} />
             <Route path="/patients/new" element={<PatientForm />} />
             <Route path="/patients/:id" element={<PatientProfile />} />

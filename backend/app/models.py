@@ -96,6 +96,9 @@ class Patient(db.Model):
     lat = db.Column(db.Float)
     lng = db.Column(db.Float)
     registered_by = db.Column(UUID(as_uuid=False), db.ForeignKey("users.id"))
+    assigned_doctor_id = db.Column(UUID(as_uuid=False), db.ForeignKey("users.id", ondelete="SET NULL"))
+
+    assigned_doctor = db.relationship("User", foreign_keys=[assigned_doctor_id])
 
     __table_args__ = (
         db.CheckConstraint("gender IN ('male', 'female', 'other')", name="patients_gender_check"),
@@ -126,6 +129,16 @@ class Patient(db.Model):
             "lat": self.lat,
             "lng": self.lng,
             "registered_by": self.registered_by,
+            "assigned_doctor_id": self.assigned_doctor_id,
+            "assigned_doctor": (
+                {
+                    "id": self.assigned_doctor.id,
+                    "fullName": self.assigned_doctor.full_name,
+                    "email": self.assigned_doctor.email,
+                }
+                if self.assigned_doctor
+                else None
+            ),
         }
 
 

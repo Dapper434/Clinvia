@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../context/useAuth.js'
-import { getPatientByIdApi } from '../api/patients.js'
+import { getPatientByIdApi, getDoctorsApi, updatePatientApi } from '../api/patients.js'
 import { getDoseLogsApi, upsertDoseLogApi } from '../api/doseLogs.js'
 import { getLabsApi } from '../api/labs.js'
 import { getContactsApi } from '../api/contacts.js'
@@ -31,6 +31,8 @@ export default function PatientProfile() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [doctors, setDoctors] = useState([])
+  const [assigning, setAssigning] = useState(false)
 
   const reload = useCallback(async () => {
     try {
@@ -45,8 +47,8 @@ export default function PatientProfile() {
 
       const [logs, labRows, cRows] = await Promise.all([
         getDoseLogsApi({ patient_id: id }),
-        getLabsApi({ patient_id: id }),
-        getContactsApi({ source_patient_id: id }),
+        getLabsApi(id),
+        getContactsApi(id),
       ])
 
       setDoseLogs(logs ?? [])
@@ -64,6 +66,34 @@ export default function PatientProfile() {
     // (react-hooks/set-state-in-effect).
     Promise.resolve().then(reload)
   }, [reload])
+
+  useEffect(() => {
+    let cancelled = false
+    getDoctorsApi()
+      .then((data) => {
+        if (!cancelled) setDoctors(data ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setDoctors([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function handleAssignDoctor(doctorId) {
+    if (!patient) return
+    setAssigning(true)
+    setError('')
+    try {
+      await updatePatientApi(patient.id, { assigned_doctor_id: doctorId || null })
+      await reload()
+    } catch (err) {
+      setError(err.message || 'Failed to update assigned doctor')
+    } finally {
+      setAssigning(false)
+    }
+  }
 
   const adherence = patient ? calcAdherence(doseLogs, patient.treatment_start) : 0
   const risk = getRiskLevel(adherence)
@@ -186,7 +216,7 @@ export default function PatientProfile() {
       ) : null}
 
       {/* Metric Cards */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-4">
         <div className={`rounded-2xl border p-5 shadow-sm ${riskBadge}`}>
           <p className="text-xs font-semibold uppercase tracking-wider opacity-80">Adherence Score</p>
           <p className="mt-1 text-3xl font-bold">{adherence}%</p>
@@ -205,6 +235,24 @@ export default function PatientProfile() {
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Patient Contact</p>
           <p className="mt-1 text-lg font-bold text-gray-900">{patient.phone ?? 'No phone recorded'}</p>
           <p className="mt-2 text-xs text-gray-500 truncate">{patient.address ?? 'No physical address on file'}</p>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Care Team</p>
+          <select
+            className="mt-1.5 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 disabled:opacity-50"
+            value={patient.assigned_doctor_id ?? ''}
+            disabled={assigning}
+            onChange={(e) => handleAssignDoctor(e.target.value)}
+          >
+            <option value="">Unassigned</option>
+            {doctors.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.fullName}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs text-gray-500">Assigned doctor for this patient</p>
         </div>
       </div>
 

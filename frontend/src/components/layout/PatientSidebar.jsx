@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Pill, LogOut, X } from 'lucide-react'
+import { Pill, User, LogOut, X } from 'lucide-react'
 import { useAuth } from '../../context/useAuth.js'
 
 const linkClass = ({ isActive }) =>
@@ -38,6 +38,10 @@ export default function PatientSidebar({ open = false, onClose = () => {} }) {
           <NavLink to="/my-treatment" className={linkClass} end onClick={onClose}>
             <Pill className="h-4 w-4 shrink-0" />
             My treatment
+          </NavLink>
+          <NavLink to="/my-profile" className={linkClass} onClick={onClose}>
+            <User className="h-4 w-4 shrink-0" />
+            My profile
           </NavLink>
         </nav>
         <div className="border-t border-gray-100 p-3">
