@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-# TBTrack Full-Stack Launch Script
+# Clinvia Full-Stack Launch Script
 # ==============================================================================
-# Starts both the Flask Backend (Flask-SQLAlchemy) and Vite React Frontend
-# concurrently.
+# Starts the local dev database (if the backend uses it), the Flask backend and
+# the Vite React frontend together. Ctrl+C stops the backend and frontend.
 # ==============================================================================
 
 # Determine root repository directory
@@ -19,14 +19,8 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${CYAN}${BOLD}"
-echo "  _____ ____ _____             _    "
-echo " |_   _| __ )_   _| __ __ _  ___| | __"
-echo "   | | |  _ \ | || '__/ _\` |/ __| |/ /"
-echo "   | | | |_) || || | | (_| | (__|   < "
-echo "   |_| |____/ |_||_|  \__,_|\___|_|\_\\"
-echo -e "${NC}"
-echo -e "${BOLD}Tuberculosis Case Management & Adherence Platform${NC}"
+echo -e "${CYAN}${BOLD}Clinvia${NC}"
+echo -e "${BOLD}Hospital management and TB care${NC}"
 echo "=================================================="
 
 # 1. Check environment files
@@ -84,10 +78,32 @@ if [ ! -d "$ROOT_DIR/node_modules" ]; then
     npm install
 fi
 
-# 5. Cleanup background processes on exit
+# 5. Local dev database: start it if the backend points at it and it isn't running.
+DEV_DB_DIR="$HOME/.local/share/clinvia-devdb"
+PG_BIN="/usr/lib/postgresql/18/bin"
+if grep -q '^DATABASE_URL=.*localhost:5433' "$ROOT_DIR/backend/.env" && [ -d "$DEV_DB_DIR/data" ]; then
+    if ! "$PG_BIN/pg_isready" -h localhost -p 5433 -q; then
+        echo -e "${CYAN}🗄️  Starting local dev database on port 5433...${NC}"
+        "$PG_BIN/pg_ctl" -D "$DEV_DB_DIR/data" -l "$DEV_DB_DIR/server.log" \
+            -o "-p 5433 -k $DEV_DB_DIR/sock -c listen_addresses=localhost -c timezone=UTC" start > /dev/null
+    fi
+    echo -e "${GREEN}✓ Dev database ready (localhost:5433)${NC}"
+fi
+
+# 6. Refuse to start twice: a second copy would fail on the same ports.
+for port in 5000 5173; do
+    if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
+        echo -e "${RED}❌ Port $port is already in use — Clinvia (or something else) is already running.${NC}"
+        echo "   Open http://localhost:5173, or stop the other process first."
+        trap - EXIT
+        exit 1
+    fi
+done
+
+# 7. Cleanup background processes on exit
 cleanup() {
     echo ""
-    echo -e "${YELLOW}🛑 Shutting down TBTrack services...${NC}"
+    echo -e "${YELLOW}🛑 Shutting down Clinvia...${NC}"
     if [ -n "$BACKEND_PID" ]; then
         kill "$BACKEND_PID" 2>/dev/null || true
     fi
@@ -101,7 +117,7 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM EXIT
 
-# 6. Start Backend Service (Flask)
+# 8. Start Backend Service (Flask)
 echo -e "${CYAN}🚀 Starting Backend API on http://localhost:5000...${NC}"
 (
     cd "$ROOT_DIR/backend"
@@ -110,7 +126,7 @@ echo -e "${CYAN}🚀 Starting Backend API on http://localhost:5000...${NC}"
 ) &
 BACKEND_PID=$!
 
-# 7. Start Frontend Service
+# 9. Start Frontend Service
 echo -e "${CYAN}🚀 Starting Frontend UI on http://localhost:5173...${NC}"
 (
     cd "$ROOT_DIR/frontend"
@@ -123,13 +139,13 @@ sleep 2
 
 echo ""
 echo "=================================================="
-echo -e "${GREEN}${BOLD}✓ TBTrack is up and running!${NC}"
+echo -e "${GREEN}${BOLD}✓ Clinvia is up and running!${NC}"
 echo "=================================================="
 echo -e "  💻 ${BOLD}Frontend App:${NC}   ${CYAN}http://localhost:5173${NC}"
 echo -e "  🔌 ${BOLD}Backend API:${NC}    ${CYAN}http://localhost:5000${NC}"
 echo -e "  🩺 ${BOLD}API Health:${NC}     ${CYAN}http://localhost:5000/health${NC}"
 echo "=================================================="
-echo -e "Press ${BOLD}Ctrl+C${NC} at any time to stop all services."
+echo -e "Press ${BOLD}Ctrl+C${NC} to stop the backend and frontend (the dev database keeps running)."
 echo ""
 
 # Wait for background jobs
