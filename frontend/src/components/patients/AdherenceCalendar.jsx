@@ -1,8 +1,21 @@
+import { useEffect, useRef } from 'react'
 import { addDays, differenceInCalendarDays, format, parseISO, isAfter, isBefore, startOfDay } from 'date-fns'
 
 const TREATMENT_DAYS = 180
 
 export default function AdherenceCalendar({ treatmentStart, doseLogs, subtitle }) {
+  const gridRef = useRef(null)
+  const todayRef = useRef(null)
+
+  // Scroll only the grid (not the page) so today's cell is in view.
+  useEffect(() => {
+    const grid = gridRef.current
+    const cell = todayRef.current
+    if (grid && cell) {
+      grid.scrollTop = cell.offsetTop - grid.clientHeight / 2
+    }
+  }, [treatmentStart, doseLogs])
+
   if (!treatmentStart) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-500">
@@ -12,8 +25,13 @@ export default function AdherenceCalendar({ treatmentStart, doseLogs, subtitle }
   }
 
   const start = startOfDay(parseISO(treatmentStart))
-  const end = addDays(start, TREATMENT_DAYS - 1)
   const today = startOfDay(new Date())
+  const standardEnd = addDays(start, TREATMENT_DAYS - 1)
+  // Treatment often runs past the standard cycle (extensions, MDR regimens);
+  // extend through today so recent logs stay visible instead of vanishing.
+  const extended = isAfter(today, standardEnd)
+  const end = extended ? today : standardEnd
+  const todayKey = format(today, 'yyyy-MM-dd')
 
   const byDate = new Map()
   for (const row of doseLogs ?? []) {
@@ -45,7 +63,7 @@ export default function AdherenceCalendar({ treatmentStart, doseLogs, subtitle }
       tone = 'bg-gray-200 border-gray-300'
       label = 'No log'
     }
-    cells.push({ key, day: format(d, 'd'), tone, label })
+    cells.push({ key, day: format(d, 'd'), tone, label, isToday: key === todayKey })
   }
 
   return (
@@ -54,7 +72,8 @@ export default function AdherenceCalendar({ treatmentStart, doseLogs, subtitle }
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Adherence calendar</h3>
           <p className="text-xs text-gray-500">
-            {format(start, 'MMM d, yyyy')} — {format(end, 'MMM d, yyyy')} · {TREATMENT_DAYS} days
+            {format(start, 'MMM d, yyyy')} — {format(end, 'MMM d, yyyy')} · {totalCells} days
+            {extended ? ` (past the standard ${TREATMENT_DAYS}-day cycle)` : ''}
             {subtitle ? ` · ${subtitle}` : ''}
           </p>
         </div>
@@ -73,12 +92,18 @@ export default function AdherenceCalendar({ treatmentStart, doseLogs, subtitle }
           </span>
         </div>
       </div>
-      <div className="mt-4 grid max-h-64 grid-cols-[repeat(20,minmax(0,1fr))] gap-1 overflow-auto sm:grid-cols-[repeat(30,minmax(0,1fr))]">
+      <div
+        ref={gridRef}
+        className="relative mt-4 grid max-h-64 grid-cols-[repeat(20,minmax(0,1fr))] gap-1 overflow-auto p-0.5 sm:grid-cols-[repeat(30,minmax(0,1fr))]"
+      >
         {cells.map((c) => (
           <div
             key={c.key}
-            title={`${c.key}: ${c.label}`}
-            className={`flex h-7 items-center justify-center rounded border text-[10px] font-medium text-gray-800 ${c.tone}`}
+            ref={c.isToday ? todayRef : undefined}
+            title={`${c.key}: ${c.isToday ? 'Today · ' : ''}${c.label}`}
+            className={`flex h-7 items-center justify-center rounded border text-[10px] font-medium text-gray-800 ${c.tone} ${
+              c.isToday ? 'ring-2 ring-teal-600 ring-offset-1' : ''
+            }`}
           >
             {c.day}
           </div>
