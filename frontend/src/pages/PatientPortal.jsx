@@ -8,6 +8,7 @@ import AdherenceCalendar from '../components/patients/AdherenceCalendar.jsx'
 import DoseToggle from '../components/patients/DoseToggle.jsx'
 import StatusBadge from '../components/patients/StatusBadge.jsx'
 import StatsCard from '../components/dashboard/StatsCard.jsx'
+import ReminderCard from '../components/patients/ReminderCard.jsx'
 import {
   Pill,
   CheckCircle2,
@@ -27,6 +28,7 @@ export default function PatientPortal() {
   const [patient, setPatient] = useState(null)
   const [doseLogs, setDoseLogs] = useState([])
   const [labResults, setLabResults] = useState([])
+  const [reminder, setReminder] = useState(null)
   const [todayTaken, setTodayTaken] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -38,7 +40,7 @@ export default function PatientPortal() {
     try {
       setError('')
       setLoading(true)
-      const { patient: p, doseLogs: logs, labResults: labs } = await getMyTreatmentApi()
+      const { patient: p, doseLogs: logs, labResults: labs, reminder: rem } = await getMyTreatmentApi()
       if (!p) {
         setError('No active treatment record found linked to your account.')
         setLoading(false)
@@ -47,6 +49,7 @@ export default function PatientPortal() {
       setPatient(p)
       setDoseLogs(logs ?? [])
       setLabResults(labs ?? [])
+      setReminder(rem ?? null)
 
       const today = todayISODate()
       const todayLog = (logs ?? []).find((row) => row.date === today)
@@ -188,7 +191,7 @@ export default function PatientPortal() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Daily Dose Action Card */}
-        <div className="rounded-3xl border-2 border-teal-500/30 bg-white p-6 sm:p-8 shadow-lg shadow-teal-500/5 lg:col-span-2">
+        <div className="self-start rounded-3xl border-2 border-teal-500/30 bg-white p-6 sm:p-8 shadow-lg shadow-teal-500/5 lg:col-span-2">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
               <Pill className="h-5 w-5" />
@@ -215,6 +218,7 @@ export default function PatientPortal() {
           </div>
         </div>
 
+        <div className="space-y-6">
         {/* Your Doctor Card */}
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Your Doctor</p>
@@ -236,6 +240,9 @@ export default function PatientPortal() {
               No doctor assigned yet. Your clinic will link one to your record.
             </p>
           )}
+        </div>
+
+        <ReminderCard reminder={reminder} />
         </div>
       </div>
 

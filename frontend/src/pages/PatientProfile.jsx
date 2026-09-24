@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../context/useAuth.js'
 import { getPatientByIdApi, getDoctorsApi, updatePatientApi } from '../api/patients.js'
+import { DOSE_TIME_OPTIONS, formatDoseTime } from '../utils/doseTimes.js'
 import { getDoseLogsApi, upsertDoseLogApi } from '../api/doseLogs.js'
 import { getLabsApi } from '../api/labs.js'
 import { getContactsApi } from '../api/contacts.js'
@@ -81,18 +82,22 @@ export default function PatientProfile() {
     }
   }, [])
 
-  async function handleAssignDoctor(doctorId) {
+  async function handleCareTeamUpdate(update) {
     if (!patient) return
     setAssigning(true)
     setError('')
     try {
-      await updatePatientApi(patient.id, { assigned_doctor_id: doctorId || null })
+      await updatePatientApi(patient.id, update)
       await reload()
     } catch (err) {
-      setError(err.message || 'Failed to update assigned doctor')
+      setError(err.message || 'Failed to update care team')
     } finally {
       setAssigning(false)
     }
+  }
+
+  function handleAssignDoctor(doctorId) {
+    return handleCareTeamUpdate({ assigned_doctor_id: doctorId || null })
   }
 
   const adherence = patient ? calcAdherence(doseLogs, patient.treatment_start) : 0
@@ -252,7 +257,22 @@ export default function PatientProfile() {
               </option>
             ))}
           </select>
-          <p className="mt-2 text-xs text-gray-500">Assigned doctor for this patient</p>
+          <p className="mt-1 text-xs text-gray-500">Assigned doctor</p>
+          <select
+            aria-label="Daily dose time"
+            className="mt-3 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 disabled:opacity-50"
+            value={patient.dose_time ?? ''}
+            disabled={assigning}
+            onChange={(e) => handleCareTeamUpdate({ dose_time: e.target.value || null })}
+          >
+            <option value="">Standard ({formatDoseTime(patient.default_dose_time)}, before breakfast)</option>
+            {DOSE_TIME_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {formatDoseTime(t)}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">Daily dose time (sets reminder)</p>
         </div>
       </div>
 

@@ -3,7 +3,8 @@ from flask import Blueprint, g, jsonify, request
 from ..auth import HOSPITAL_ROLES, authenticate_token, hash_password, require_hospital
 from ..extensions import db
 from ..models import Contact, DoseLog, LabResult, Patient, User
-from ..utils import parse_date
+from ..reminders import default_dose_time
+from ..utils import parse_date, parse_time
 
 bp = Blueprint("patients", __name__, url_prefix="/api/patients")
 
@@ -69,6 +70,7 @@ def get_patient_by_id(patient_id):
     payload["doseLogs"] = [d.to_dict() for d in dose_logs]
     payload["labResults"] = [l.to_dict() for l in lab_results]
     payload["contacts"] = [c.to_dict() for c in contacts]
+    payload["default_dose_time"] = default_dose_time().strftime("%H:%M")
     return jsonify(payload)
 
 
@@ -113,6 +115,11 @@ def create_patient():
         except (TypeError, ValueError):
             return None
 
+    try:
+        dose_time = parse_time(body.get("dose_time"))
+    except (ValueError, TypeError):
+        return jsonify({"error": "dose_time must be HH:MM"}), 400
+
     patient = Patient(
         user_id=user_id,
         name=name,
@@ -130,6 +137,7 @@ def create_patient():
         lng=parse_float(body.get("lng")),
         registered_by=g.user.get("id"),
         assigned_doctor_id=body.get("assigned_doctor_id") or None,
+        dose_time=dose_time,
     )
     db.session.add(patient)
     db.session.commit()
@@ -159,27 +167,42 @@ def update_patient(patient_id):
         except (TypeError, ValueError):
             return None
 
+    # Only touch fields present in the request: a partial update (e.g. assigning
+    # a doctor) must not blank out everything it didn't mention. Sending a key
+    # with an empty value still clears it deliberately.
     if body.get("name") is not None:
         patient.name = body["name"]
-    patient.age = parse_int(body.get("age"))
+    if "age" in body:
+        patient.age = parse_int(body.get("age"))
     if body.get("gender") is not None:
         patient.gender = body["gender"]
-    patient.phone = body.get("phone")
-    patient.address = body.get("address")
-    patient.facility = body.get("facility")
+    if "phone" in body:
+        patient.phone = body.get("phone")
+    if "address" in body:
+        patient.address = body.get("address")
+    if "facility" in body:
+        patient.facility = body.get("facility")
     if body.get("tb_type") is not None:
         patient.tb_type = body["tb_type"]
-    patient.regimen = body.get("regimen")
+    if "regimen" in body:
+        patient.regimen = body.get("regimen")
     if body.get("treatment_start") is not None:
         patient.treatment_start = parse_date(body["treatment_start"])
     if body.get("status") is not None:
         patient.status = body["status"]
     if body.get("mdr_flag") is not None:
         patient.mdr_flag = bool(body["mdr_flag"])
-    patient.lat = parse_float(body.get("lat"))
-    patient.lng = parse_float(body.get("lng"))
+    if "lat" in body:
+        patient.lat = parse_float(body.get("lat"))
+    if "lng" in body:
+        patient.lng = parse_float(body.get("lng"))
     if "assigned_doctor_id" in body:
         patient.assigned_doctor_id = body.get("assigned_doctor_id") or None
+    if "dose_time" in body:
+        try:
+            patient.dose_time = parse_time(body.get("dose_time"))
+        except (ValueError, TypeError):
+            return jsonify({"error": "dose_time must be HH:MM"}), 400
 
     db.session.commit()
     return jsonify(patient.to_dict())

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getMyTreatmentApi } from '../../api/portal.js'
 import StatusBadge from '../../components/patients/StatusBadge.jsx'
+import { formatDoseTime } from '../../utils/doseTimes.js'
 import {
   ArrowLeft,
   User,
@@ -25,6 +26,7 @@ function InfoRow({ label, value }) {
 export default function MyProfile() {
   const [patient, setPatient] = useState(null)
   const [labResults, setLabResults] = useState([])
+  const [reminder, setReminder] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -32,9 +34,10 @@ export default function MyProfile() {
     try {
       setError('')
       setLoading(true)
-      const { patient: p, labResults: labs } = await getMyTreatmentApi()
+      const { patient: p, labResults: labs, reminder: rem } = await getMyTreatmentApi()
       setPatient(p ?? null)
       setLabResults(labs ?? [])
+      setReminder(rem ?? null)
     } catch (err) {
       setError(err.message || 'Could not load your profile')
     } finally {
@@ -120,6 +123,14 @@ export default function MyProfile() {
               <InfoRow label="TB Type" value={patient.tb_type?.replace('-', ' ')} />
               <InfoRow label="Regimen" value={patient.regimen} />
               <InfoRow label="Treatment Start" value={patient.treatment_start} />
+              <InfoRow
+                label="Daily Dose Time"
+                value={
+                  reminder
+                    ? `${formatDoseTime(reminder.doseTime)} (${reminder.setByDoctor ? 'set by your doctor' : 'standard'})`
+                    : null
+                }
+              />
               <InfoRow label="Facility" value={patient.facility} />
               <InfoRow
                 label="MDR-TB Status"

@@ -5,6 +5,7 @@ from flask import Blueprint, g, jsonify, request
 from ..auth import authenticate_token
 from ..extensions import db
 from ..models import DoseLog, LabResult, Patient, User
+from ..reminders import effective_dose_time, push_enabled
 from ..utils import parse_date
 
 bp = Blueprint("portal", __name__, url_prefix="/api/patient-portal")
@@ -40,6 +41,11 @@ def get_my_treatment():
             "patient": patient.to_dict(),
             "doseLogs": [d.to_dict() for d in dose_logs],
             "labResults": [l.to_dict() for l in lab_results],
+            "reminder": {
+                "doseTime": effective_dose_time(patient).strftime("%H:%M"),
+                "setByDoctor": patient.dose_time is not None,
+                "pushConfigured": push_enabled(),
+            },
         }
     )
 
