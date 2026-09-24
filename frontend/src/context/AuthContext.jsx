@@ -1,87 +1,95 @@
-import { useState, useEffect, useCallback } from 'react'
-import { getToken, removeToken } from '../api/client.js'
-import { loginApi, registerPatientApi, getMeApi, logoutApi } from '../api/auth.js'
-import { isHospitalRole, isPatientRole, isAdminRole } from '../utils/roles.js'
+import { useCallback, useEffect, useState } from 'react'
+import { getScope, getToken, removeToken, setScope as storeScope } from '../api/client.js'
+import { getMeApi, loginApi, logoutApi, registerHospitalApi, registerPatientApi } from '../api/auth.js'
+import { isAdminRole, isHospitalRole, isPatientRole } from '../utils/roles.js'
 import { AuthContext } from './authContext.js'
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [patientId, setPatientId] = useState(null)
+  const [session, setSession] = useState({ user: null, permissions: [], patientCode: null })
   const [loading, setLoading] = useState(true)
+  const [scope, setScopeState] = useState(getScope())
 
-  const fetchCurrentUser = useCallback(async () => {
+  const apply = useCallback((data) => {
+    setSession({
+      user: data?.user ?? null,
+      permissions: data?.permissions ?? [],
+      patientCode: data?.patientCode ?? null,
+    })
+  }, [])
+
+  const refresh = useCallback(async () => {
     try {
-      const token = getToken()
-      if (!token) {
-        setUser(null)
-        setProfile(null)
-        setPatientId(null)
+      if (!getToken()) {
+        apply(null)
         return
       }
-
-      const data = await getMeApi()
-      setUser(data.user)
-      setProfile(data.profile)
-      setPatientId(data.patientId || null)
-    } catch (err) {
-      console.warn('Session expired or invalid, logging out:', err.message)
+      apply(await getMeApi())
+    } catch {
       removeToken()
-      setUser(null)
-      setProfile(null)
-      setPatientId(null)
+      apply(null)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [apply])
 
   useEffect(() => {
-    // Defer the restore out of the synchronous effect body so the initial
-    // state updates happen on a microtask (react-hooks/set-state-in-effect).
-    Promise.resolve().then(fetchCurrentUser)
-  }, [fetchCurrentUser])
+    // Deferred so the first state updates happen on a microtask (react-hooks/set-state-in-effect).
+    Promise.resolve().then(refresh)
+  }, [refresh])
 
   const signIn = async (portal, email, password) => {
+    storeScope(null)
+    setScopeState('all')
     const data = await loginApi(portal, email, password)
-    setUser(data.user)
-    setProfile(data.profile)
-    setPatientId(data.patientId || null)
+    apply(data)
     return data
   }
 
-  const signUpPatient = async (email, password, fullName, patientFields, linkId) => {
-    const data = await registerPatientApi(email, password, fullName, patientFields, linkId)
-    setUser(data.user)
-    setProfile(data.profile)
-    setPatientId(data.patientId || null)
+  const signUpPatient = async (body) => {
+    const data = await registerPatientApi(body)
+    apply(data)
     return data
   }
 
-  const signOut = async () => {
+  const registerHospital = async (body) => {
+    storeScope(null)
+    const data = await registerHospitalApi(body)
+    apply(data)
+    return data
+  }
+
+  const signOut = () => {
     logoutApi()
-    setUser(null)
-    setProfile(null)
-    setPatientId(null)
+    setScopeState('all')
+    apply(null)
   }
 
-  const effectiveRole = profile?.role ?? user?.role ?? null
-  const isHospital = isHospitalRole(effectiveRole)
-  const isPatient = isPatientRole(effectiveRole)
-  const isAdmin = isAdminRole(effectiveRole)
+  const setScope = (slug) => {
+    storeScope(slug)
+    setScopeState(slug || 'all')
+  }
+
+  const role = session.user?.role ?? null
+  const can = useCallback((capability) => session.permissions.includes(capability), [session.permissions])
 
   const value = {
-    user,
-    profile,
-    role: effectiveRole,
-    isHospital,
-    isPatient,
-    isAdmin,
-    patientId,
+    user: session.user,
+    role,
+    permissions: session.permissions,
+    can,
+    patientCode: session.patientCode,
+    isHospital: isHospitalRole(role),
+    isPatient: isPatientRole(role),
+    isAdmin: isAdminRole(role),
+    isNetwork: role === 'network_admin',
+    scope: role === 'network_admin' ? scope : session.user?.hospital?.slug ?? 'all',
+    setScope,
     loading,
     signIn,
     signUpPatient,
+    registerHospital,
     signOut,
-    refreshProfile: fetchCurrentUser,
+    refreshProfile: refresh,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
