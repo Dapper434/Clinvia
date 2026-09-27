@@ -80,10 +80,26 @@ fi
 
 # 5. Local dev database: start it if the backend points at it and it isn't running.
 DEV_DB_DIR="$HOME/.local/share/clinvia-devdb"
-PG_BIN="/usr/lib/postgresql/18/bin"
+# Postgres's major version (and thus its bin directory) varies by machine and by how
+# it was installed, so detect it instead of hardcoding one — pg_config matches
+# whichever `postgres`/`initdb` created $DEV_DB_DIR/data, falling back to the newest
+# versioned directory Debian/Ubuntu package layouts use.
+PG_BIN="$(pg_config --bindir 2>/dev/null)"
+if [ -z "$PG_BIN" ] || [ ! -x "$PG_BIN/pg_ctl" ]; then
+    PG_BIN="$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -n1)"
+fi
 if grep -q '^DATABASE_URL=.*localhost:5433' "$ROOT_DIR/backend/.env" && [ -d "$DEV_DB_DIR/data" ]; then
+    if [ -z "$PG_BIN" ] || [ ! -x "$PG_BIN/pg_ctl" ]; then
+        echo -e "${RED}❌ Couldn't find a PostgreSQL installation (pg_ctl) to start the local dev database.${NC}"
+        echo "   Install PostgreSQL, or start it yourself and point DATABASE_URL elsewhere."
+        trap - EXIT
+        exit 1
+    fi
     if ! "$PG_BIN/pg_isready" -h localhost -p 5433 -q; then
         echo -e "${CYAN}🗄️  Starting local dev database on port 5433...${NC}"
+        # postgres won't create the unix-socket directory itself — pg_ctl fails with
+        # "could not create lock file ... No such file or directory" without this.
+        mkdir -p "$DEV_DB_DIR/sock"
         "$PG_BIN/pg_ctl" -D "$DEV_DB_DIR/data" -l "$DEV_DB_DIR/server.log" \
             -o "-p 5433 -k $DEV_DB_DIR/sock -c listen_addresses=localhost -c timezone=UTC" start > /dev/null
     fi
