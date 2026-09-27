@@ -4,10 +4,11 @@ from flask import Blueprint, g, jsonify, request
 
 from .. import assistant
 from ..auth import authenticate_token, require_patient
-from ..clinical import adherence, clinic_today, lab_label, local, miss_streak, tz
+from ..clinical import adherence, clinic_now, clinic_today, lab_label, local, miss_streak, next_pickup, tz
+from ..escalations import raise_escalation
 from ..extensions import db
 from ..lookups import body, doctor_brief
-from ..models import Appointment, DoseLog, LabResult, Medication, Patient, PatientFile, User
+from ..models import Appointment, DoseLog, LabResult, Medication, MedicationPickup, Patient, PatientFile, User
 from ..reminders import effective_dose_time, push_enabled
 from ..utils import parse_date
 from .appointments import SLOTS, free_slots
@@ -18,6 +19,13 @@ bp = Blueprint("portal", __name__, url_prefix="/api/patient-portal")
 
 def _me():
     return Patient.query.filter_by(user_id=g.current_user.id).first()
+
+
+def _pickup(patient):
+    e = patient.active_episode
+    if not e:
+        return None
+    return next_pickup(e, MedicationPickup.query.filter_by(episode_id=e.id).all(), clinic_today())
 
 
 @bp.get("/my-treatment")
@@ -59,6 +67,7 @@ def get_my_treatment():
         "doctors": [doctor_brief(d) for d in User.query.filter_by(
             facility_id=patient.facility_id, role="doctor", duty_status="on_duty", is_active=True
         ).order_by(User.staff_code)] if patient.facility_id else [],
+        "pickup": _pickup(patient),
         "reminder": {
             "doseTime": effective_dose_time(patient).strftime("%H:%M"),
             "setByDoctor": patient.dose_time is not None,
@@ -193,8 +202,8 @@ def open_my_file(file_id):
     return file_response(f, patient)
 
 
-# A patient may ask the assistant at most this many questions in this window (per server process).
-ASSISTANT_LIMIT = 20
+# A patient may message the companion at most this many questions in this window (per server process).
+ASSISTANT_LIMIT = 30
 ASSISTANT_WINDOW = timedelta(minutes=10)
 _asked = {}
 
@@ -207,14 +216,15 @@ def _over_limit(user_id, now):
 
 def _treatment_facts(patient):
     """The only patient data the assistant sees: treatment state, never identity."""
+    today = clinic_today()
     e = patient.active_episode
     if not e:
-        return {"on_treatment": False}
-    today = clinic_today()
+        return {"on_treatment": False, "today": today}
     logs = DoseLog.query.filter_by(patient_id=patient.id).all()
     log = {d.date: (d.taken, d.source) for d in logs}
     return {
         "on_treatment": True,
+        "today": today,
         "regimen": e.regimen,
         "day_of_treatment": (today - e.treatment_start).days + 1,
         "adherence": adherence(log, today),
@@ -222,6 +232,35 @@ def _treatment_facts(patient):
         "dose_time": effective_dose_time(patient).strftime("%H:%M"),
         "logged_today": today in log,
     }
+
+
+class CompanionTools:
+    """What the companion can do for this patient: read their schedule, and escalate to their doctor."""
+
+    def __init__(self, patient):
+        self.patient = patient
+
+    def schedule(self):
+        p = self.patient
+        appt = (
+            Appointment.query.filter(Appointment.patient_id == p.id, Appointment.status == "scheduled",
+                                     Appointment.scheduled_at >= clinic_now())
+            .order_by(Appointment.scheduled_at).first()
+        )
+        return {
+            "today": clinic_today().isoformat(),
+            "on_treatment": p.active_episode is not None,
+            "dose_time": effective_dose_time(p).strftime("%H:%M"),
+            "next_pickup": _pickup(p),
+            "next_appointment": {
+                "date": local(appt.scheduled_at).date().isoformat(),
+                "time": local(appt.scheduled_at).strftime("%H:%M"),
+                "reason": appt.reason,
+            } if appt else None,
+        }
+
+    def escalate(self, severity, reason, message, source):
+        return raise_escalation(self.patient, severity, reason, message, source)
 
 
 @bp.post("/assistant")
@@ -232,5 +271,5 @@ def ask_assistant():
     if not patient:
         return jsonify({"error": "Connect your clinic record first."}), 400
     if _over_limit(g.current_user.id, datetime.now()):
-        return jsonify({"error": "You've asked a lot of questions. Please wait a few minutes, or contact your clinic."}), 429
-    return jsonify(assistant.answer(_treatment_facts(patient), body().get("messages")))
+        return jsonify({"error": "We've chatted a lot. Let's take a short break and talk again in a few minutes."}), 429
+    return jsonify(assistant.answer(_treatment_facts(patient), body().get("messages"), CompanionTools(patient)))

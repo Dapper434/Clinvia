@@ -17,9 +17,10 @@ from ..clinical import (
     short_facility,
     weekly_admissions,
 )
+from ..escalations import escalations_for
 from ..extensions import db
 from ..lookups import names_by_id, patient_brief
-from ..models import Appointment, Bed, Facility, Patient, TbEpisode, User, Visit, Ward
+from ..models import Appointment, Bed, Escalation, Facility, Patient, TbEpisode, User, Visit, Ward
 
 bp = Blueprint("dashboard", __name__, url_prefix="/api")
 
@@ -165,6 +166,9 @@ def dashboard():
         payload["schedule"] = []
         payload["scheduleByDoctor"] = sorted(per.values(), key=lambda d: -d["booked"])
 
+    if can(role, "escalations.view"):
+        payload["escalations"] = escalations_for(scope, "open", doctor_id=doctor_id)
+
     att = attention(scope, today, doctor_id)
     if clinical:
         payload["attention"] = att
@@ -230,6 +234,10 @@ def badges():
     out = {"attention": None, "dosesLeft": None}
     if can(role, "patients.clinical"):
         out["attention"] = len(attention(scope, today))
+    if can(role, "escalations.view"):
+        # Patients the companion escalated need attention too.
+        open_count = Escalation.query.filter(Escalation.facility_id.in_(scope), Escalation.status == "open").count()
+        out["attention"] = (out["attention"] or 0) + open_count
     if can(role, "doses.view"):
         eps = active_episodes(scope)
         logged = dose_maps([p.id for _, p in eps], since=today)

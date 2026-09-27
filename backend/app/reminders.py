@@ -66,10 +66,10 @@ def push_enabled():
     return bool(cfg["VAPID_PUBLIC_KEY"] and cfg["VAPID_PRIVATE_KEY"])
 
 
-def send_push(subscription, title, body):
+def send_push(subscription, title, body, url=REMINDER_URL, tag="dose-reminder"):
     """Send one notification. Returns 'sent', 'gone' (stale subscription), or 'failed'."""
     cfg = current_app.config
-    payload = json.dumps({"title": title, "body": body, "url": REMINDER_URL, "tag": "dose-reminder"})
+    payload = json.dumps({"title": title, "body": body, "url": url, "tag": tag})
     try:
         webpush(
             subscription_info=subscription.subscription_info(),
@@ -87,11 +87,11 @@ def send_push(subscription, title, body):
         return "failed"
 
 
-def _deliver_to_user(user_id, title, body, summary):
+def _deliver_to_user(user_id, title, body, summary, **where):
     """Send to every device the user subscribed; prune dead ones. Returns True if any delivered."""
     delivered = False
     for sub in PushSubscription.query.filter_by(user_id=user_id).all():
-        result = send_push(sub, title, body)
+        result = send_push(sub, title, body, **where)
         if result == "sent":
             delivered = True
             summary["sent"] += 1

@@ -27,12 +27,20 @@ Don't rename the role in code unless you're also writing the migration for it.
 - Checks in the daily dose. Those doses are locked, so staff can't overwrite them.
 - Sees their adherence, results, medication and appointments. Books appointments and uploads documents.
 - Gets push dose reminders at the dose time.
+- Talks to **Rafiki**, the AI companion ("Talk to Rafiki" on `/my-treatment`). Rafiki keeps them company
+  and is not a medic. It can tell them their next medicine pickup, dose time and appointment, and it
+  escalates anything a doctor should know (danger signs always, by rule, before the model is asked).
+  Runs on NVIDIA NIM by default (`AI_API_KEY`); without a key it falls back to safe rules.
+  Code: `backend/app/assistant.py`, `backend/app/escalations.py`.
 - Code: `backend/app/routes/portal.py`, `backend/app/reminders.py`, `frontend/src/pages/PatientPortal.jsx`,
   `frontend/src/pages/patient/`, `frontend/src/components/layout/Patient*.jsx`, `frontend/src/api/portal.js`.
 
 ### Doctor
 - Belongs to one hospital and sees full clinical records there.
 - Manages the TB episode, labs, medications, admissions and appointments. Sets a patient's dose reminder time.
+- Records medication pickups (`POST /api/patients/<code>/pickups`); the next pickup date comes from `next_pickup()` in `clinical.py`.
+- Sees what patients reported to Rafiki ("Reported to Rafiki" on the dashboard and the patient record),
+  gets a push notification when one is raised, and marks it handled (`escalations.handle`).
 - Is a patient's **assigned doctor** (`Patient.assigned_doctor_id`), and can switch the dashboard
   and schedule to show only their own patients (`?mine=1`, `_mine()` in `routes/dashboard.py`).
 - Code: `frontend/src/pages/staff/` (Dashboard, PatientRecord, Appointments, DoseLog…),
@@ -43,6 +51,7 @@ Don't rename the role in code unless you're also writing the migration for it.
   See `scope_ids()` in `backend/app/auth.py`.
 - Network overview (`/network`), cross-network people directory (`/directory`), and can suspend a hospital.
 - Reads clinical records, dose logs and reports, and exports them. Manages staff and hospital settings.
+- Reads Rafiki escalations across hospitals (`escalations.view`) but doesn't handle them.
 - **Can't** register patients or log doses. Those need one hospital, and they belong to its staff.
 - Code: `frontend/src/pages/staff/Network.jsx`, `Directory.jsx`, `backend/app/routes/hospitals.py`,
   `backend/app/lookups.py`, and the `isNetwork` / `scope` values in `frontend/src/context/AuthContext.jsx`.

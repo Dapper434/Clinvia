@@ -40,6 +40,10 @@ PERMISSIONS = {
     "tb.manage": {"doctor", "clinician"},
     "labs.write": {"doctor", "clinician"},
     "meds.write": {"doctor", "clinician"},
+    # What patients tell the portal companion that a doctor should see. The TB
+    # representative can read them across hospitals; only the hospital's doctors act on them.
+    "escalations.view": {"network_admin", "doctor", "clinician"},
+    "escalations.handle": {"doctor", "clinician"},
     "files.upload": {"admin", "doctor", "clinician", "nurse"},
     "contacts.write": {"doctor", "clinician", "nurse"},
     "appointments.view": ALL_STAFF - {"executive"},

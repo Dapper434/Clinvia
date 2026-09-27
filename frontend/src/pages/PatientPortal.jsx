@@ -38,6 +38,21 @@ const card = 'rounded-3xl border border-gray-200 bg-white p-6 shadow-sm'
 const input = 'w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500'
 const niceDate = (s) => new Date(`${s.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
 
+function PickupNote({ pickup }) {
+  const when = pickup.overdue
+    ? `was due ${niceDate(pickup.due)}. Please collect it soon.`
+    : pickup.daysLeft === 0 ? 'is today.' : `is ${niceDate(pickup.due)}, in ${pickup.daysLeft} day${pickup.daysLeft === 1 ? '' : 's'}.`
+  return (
+    <p className={`mt-4 flex items-start gap-2 border-t border-gray-100 pt-4 text-sm ${pickup.overdue ? 'text-rose-700' : 'text-gray-700'}`}>
+      <CalendarCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-teal-600" aria-hidden="true" />
+      <span>
+        Your next medicine pickup {when}
+        {pickup.estimated ? <span className="text-gray-500"> This is an estimate from your treatment plan; confirm it with your clinic.</span> : null}
+      </span>
+    </p>
+  )
+}
+
 function LinkRecord({ onLinked }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
@@ -313,14 +328,17 @@ export default function PatientPortal() {
             ) : null}
           </div>
 
-          {data.medications.length ? (
+          {data.medications.length || data.pickup ? (
             <div className={card}>
               <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Current medication</p>
-              <ul className="mt-3 space-y-2">
-                {data.medications.map((m) => (
-                  <li key={m.id} className="break-words text-sm"><span className="font-medium text-gray-900">{m.drug}</span> <span className="text-gray-500">{m.dose}, {m.freq.toLowerCase()}</span></li>
-                ))}
-              </ul>
+              {data.medications.length ? (
+                <ul className="mt-3 space-y-2">
+                  {data.medications.map((m) => (
+                    <li key={m.id} className="break-words text-sm"><span className="font-medium text-gray-900">{m.drug}</span> <span className="text-gray-500">{m.dose}, {m.freq.toLowerCase()}</span></li>
+                  ))}
+                </ul>
+              ) : null}
+              {data.pickup ? <PickupNote pickup={data.pickup} /> : null}
             </div>
           ) : null}
 

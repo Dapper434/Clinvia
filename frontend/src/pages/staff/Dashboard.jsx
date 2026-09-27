@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { dashboardApi } from '../../api/hospital.js'
 import AdmissionsChart from '../../components/charts/AdmissionsChart.jsx'
 import DoseChart from '../../components/charts/DoseChart.jsx'
+import EscalationList from '../../components/escalations/EscalationList.jsx'
 import { useShell } from '../../components/shell/shellContext.js'
 import { ApptStatus, BookedBy, Empty, ErrorNote, Loading, Stat, Stats, Strip } from '../../components/ui/bits.jsx'
 import { Check, Plus } from '../../components/ui/icons.jsx'
@@ -165,6 +166,16 @@ export default function Dashboard() {
           </div>
           {loading ? <span className="muted">Updating…</span> : null}
         </div>
+      ) : null}
+
+      {d.escalations?.length ? (
+        <section className="panel" aria-labelledby="esc-h">
+          <div className="panel-h">
+            <h3 id="esc-h">Reported to Rafiki</h3>
+            <span>{plural(d.escalations.length, 'patient report')} for a doctor, from the patient companion. Urgent first.</span>
+          </div>
+          <EscalationList rows={d.escalations} onHandled={reload} />
+        </section>
       ) : null}
 
       {clinical ? <AttentionPanel rows={d.attention} today={d.today} network={d.network} /> : null}

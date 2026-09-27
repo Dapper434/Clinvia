@@ -5,6 +5,9 @@
   if today isn't logged yet, stopping at the first taken dose.
 * Needs attention, most urgent first: missed streak >= 2, then sputum not converted
   at month 2, then GeneXpert results still pending.
+* Next medication pickup = the last recorded pickup plus the days it supplied. With no
+  pickup recorded yet it is estimated from the treatment start: every two weeks in the
+  intensive phase, every four weeks after, until the regimen ends.
 """
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta
@@ -15,8 +18,12 @@ from sqlalchemy import select
 
 from .extensions import db
 from .models import Admission, Bed, DoseLog, Facility, LabResult, Patient, TbEpisode, Ward
+from .prescribing import REGIMENS
 
 REGIMEN_DAYS = 182
+INTENSIVE_DAYS = 56
+PICKUP_EVERY_INTENSIVE = 14
+PICKUP_EVERY_CONTINUATION = 28
 LAB_LABELS = {
     "genexpert": "GeneXpert MTB/RIF",
     "sputum_smear": "Sputum smear microscopy",
@@ -264,3 +271,31 @@ def age_band(age):
 
 def iso(d):
     return d.isoformat() if isinstance(d, (date, datetime)) else d
+
+
+def next_pickup(episode, pickups, today=None):
+    """When this patient should next collect their TB drugs, or None when treatment has ended.
+
+    `pickups` are the episode's MedicationPickup rows, in any order.
+    """
+    today = today or clinic_today()
+    plan = REGIMENS.get(episode.regimen) or {}
+    end = episode.treatment_start + timedelta(days=plan.get("total_days") or REGIMEN_DAYS)
+    last = max(pickups, key=lambda x: x.picked_up_on) if pickups else None
+    if last:
+        due, estimated = last.picked_up_on + timedelta(days=last.days_supplied), False
+    else:
+        intensive = plan.get("intensive_days") or INTENSIVE_DAYS
+        due, estimated = episode.treatment_start, True
+        while due < today:
+            step = PICKUP_EVERY_INTENSIVE if (due - episode.treatment_start).days < intensive else PICKUP_EVERY_CONTINUATION
+            due += timedelta(days=step)
+    if due >= end:
+        return None
+    return {
+        "due": due.isoformat(),
+        "daysLeft": (due - today).days,
+        "overdue": due < today,
+        "estimated": estimated,
+        "lastPickup": last.picked_up_on.isoformat() if last else None,
+    }

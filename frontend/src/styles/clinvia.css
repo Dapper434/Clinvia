@@ -302,3 +302,19 @@
 .cv .rx-line .field:first-child{grid-column:1 / -1}
 .cv .rx-line > button{justify-self:start}
 .cv .rx-line > small{grid-column:1 / -1;color:var(--ink-3)}
+
+/* Escalations from Rafiki, the patient companion */
+.cv .esc-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.cv .esc-row{border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.cv .esc-row.urgent{border-left-color:var(--red);background:var(--red-wash)}
+.cv .esc-row.done{border-left-color:var(--line)}
+.cv .esc-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cv .esc-sev{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--line-2);color:var(--ink-2)}
+.cv .esc-sev.urgent{background:var(--red);color:#fff}
+.cv .esc-sev.concern{background:var(--amber-wash);color:var(--amber)}
+.cv .esc-reason{font-weight:500}
+.cv .esc-quote{margin:0;padding:6px 10px;border-left:2px solid var(--line);color:var(--ink-2);font-size:13px;white-space:pre-line;overflow-wrap:anywhere;max-height:9em;overflow:auto}
+.cv .esc-ack{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cv .esc-ack input{flex:1 1 220px;min-width:0;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.cv .esc-ack select{padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.cv .esc-ack input[type=date]{flex:0 1 auto}

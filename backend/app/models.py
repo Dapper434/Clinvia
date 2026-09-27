@@ -649,3 +649,70 @@ class PushSubscription(db.Model):
 
     def subscription_info(self):
         return {"endpoint": self.endpoint, "keys": {"p256dh": self.p256dh, "auth": self.auth}}
+
+
+class MedicationPickup(db.Model):
+    """TB drugs handed to a patient at the clinic, and how many days they last.
+
+    The next pickup is due when the supply runs out; see `next_pickup()` in clinical.py.
+    """
+
+    __tablename__ = "medication_pickups"
+
+    id = db.Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    patient_id = db.Column(UUID(as_uuid=False), db.ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    episode_id = db.Column(UUID(as_uuid=False), db.ForeignKey("tb_episodes.id", ondelete="CASCADE"), nullable=False)
+    picked_up_on = db.Column(db.Date, nullable=False)
+    days_supplied = db.Column(db.Integer, nullable=False)
+    recorded_by = db.Column(UUID(as_uuid=False), db.ForeignKey("users.id", ondelete="SET NULL"))
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        db.CheckConstraint("days_supplied BETWEEN 1 AND 90", name="medication_pickups_days_check"),
+        db.Index("medication_pickups_patient_idx", "patient_id", "picked_up_on"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "on": _iso(self.picked_up_on),
+            "days": self.days_supplied,
+        }
+
+
+ESCALATION_SEVERITIES = ("urgent", "concern")
+ESCALATION_STATUSES = ("open", "acknowledged")
+
+
+class Escalation(db.Model):
+    """Something a patient told the portal companion that their doctor should see.
+
+    Raised by the danger-sign rules (`source='rule'`) or by the model (`source='ai'`).
+    Staff see the patient's own words; nothing here is sent to the AI provider.
+    """
+
+    __tablename__ = "escalations"
+
+    id = db.Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    patient_id = db.Column(UUID(as_uuid=False), db.ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    facility_id = db.Column(UUID(as_uuid=False), db.ForeignKey("facilities.id"), nullable=False)
+    # The patient's assigned doctor when they have one; otherwise any doctor at the hospital picks it up.
+    doctor_id = db.Column(UUID(as_uuid=False), db.ForeignKey("users.id", ondelete="SET NULL"))
+    severity = db.Column(db.Text, nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    patient_message = db.Column(db.Text, nullable=False)
+    source = db.Column(db.Text, nullable=False)
+    status = db.Column(db.Text, nullable=False, default="open", server_default="open")
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+    acknowledged_by = db.Column(UUID(as_uuid=False), db.ForeignKey("users.id", ondelete="SET NULL"))
+    acknowledged_at = db.Column(db.DateTime(timezone=True))
+    note = db.Column(db.Text)
+
+    __table_args__ = (
+        db.CheckConstraint(_in_check("severity", ESCALATION_SEVERITIES), name="escalations_severity_check"),
+        db.CheckConstraint(_in_check("status", ESCALATION_STATUSES), name="escalations_status_check"),
+        db.CheckConstraint("source IN ('rule', 'ai')", name="escalations_source_check"),
+        db.Index("escalations_facility_status_idx", "facility_id", "status", "created_at"),
+        db.Index("escalations_patient_idx", "patient_id"),
+    )
