@@ -7,13 +7,15 @@ from ..auth import (
     authenticate_token,
     hash_password,
     password_problem,
+    representative_hospitals,
     require,
     scope_ids,
 )
-from ..clinical import attention, clinic_today, day_bounds
+from ..clinical import clinic_today
 from ..extensions import db
 from ..lookups import body
-from ..models import Appointment, Bed, Facility, Patient, Profile, TbEpisode, User, Visit, Ward
+from ..metrics import hospital_metrics
+from ..models import Facility, Profile, User
 from .auth_routes import session_payload
 
 bp = Blueprint("hospitals", __name__, url_prefix="/api/hospitals")
@@ -102,57 +104,25 @@ def register_hospital():
 @bp.get("")
 @authenticate_token
 def list_hospitals():
-    """Hospitals the caller can see: all of them for the network admin, their own otherwise."""
+    """Hospitals the caller can see: the ones a TB representative oversees, or the user's own."""
     user = g.current_user
-    q = Facility.query.order_by(Facility.name)
-    if user.role != "network_admin":
-        q = q.filter(Facility.id == user.facility_id)
-    return jsonify([f.to_dict() for f in q.all()])
+    if user.role == "network_admin":
+        q = representative_hospitals(user)
+    else:
+        q = Facility.query.filter(Facility.id == user.facility_id)
+    return jsonify([f.to_dict() for f in q.order_by(Facility.name).all()])
 
 
 @bp.get("/overview")
 @authenticate_token
 @require("network.view")
 def overview():
-    """One row per hospital for the network admin: people, beds, TB and today's activity."""
+    """One row per hospital the TB representative oversees: counts and percentages only."""
     today = clinic_today()
-    lo, hi = day_bounds(today)
-    rows = []
-    for f in Facility.query.order_by(Facility.name).all():
-        sid = [f.id]
-        beds = db.session.execute(
-            select(Bed.status, func.count()).join(Ward, Ward.id == Bed.ward_id)
-            .where(Ward.facility_id == f.id).group_by(Bed.status)
-        ).all()
-        bed_counts = dict(beds)
-        staff = dict(db.session.execute(
-            select(User.role, func.count()).where(User.facility_id == f.id, User.is_active).group_by(User.role)
-        ).all())
-        doctors_on = User.query.filter_by(facility_id=f.id, role="doctor", duty_status="on_duty", is_active=True).count()
-        tb = db.session.execute(
-            select(func.count(), func.count().filter(TbEpisode.mdr_flag))
-            .select_from(TbEpisode).join(Patient, Patient.id == TbEpisode.patient_id)
-            .where(Patient.facility_id == f.id, TbEpisode.status == "active")
-        ).one()
-        rows.append({
-            **f.to_dict(),
-            "patients": Patient.query.filter_by(facility_id=f.id).count(),
-            "staff": sum(staff.values()),
-            "doctors": staff.get("doctor", 0),
-            "doctorsOnDuty": doctors_on,
-            "activeTb": tb[0],
-            "mdr": tb[1],
-            "attention": len(attention(sid, today)),
-            "bedsOccupied": bed_counts.get("occupied", 0),
-            "beds": sum(bed_counts.values()),
-            "appointmentsToday": Appointment.query.filter(
-                Appointment.facility_id == f.id, Appointment.scheduled_at >= lo, Appointment.scheduled_at < hi
-            ).count(),
-            "waiting": Visit.query.filter(
-                Visit.facility_id == f.id, Visit.status == "waiting", Visit.arrived_at >= lo, Visit.arrived_at < hi
-            ).count(),
-        })
-    return jsonify(rows)
+    return jsonify([
+        {**f.to_dict(), **hospital_metrics(f, today)}
+        for f in representative_hospitals(g.current_user).order_by(Facility.name).all()
+    ])
 
 
 @bp.patch("/<slug>")
@@ -161,7 +131,7 @@ def overview():
 def update_hospital(slug):
     user = g.current_user
     f = Facility.query.filter_by(slug=slug).first()
-    if not f or (user.role != "network_admin" and f.id != user.facility_id):
+    if not f or f.id != user.facility_id:
         return jsonify({"error": "There is no hospital called that here."}), 404
     data = body()
     if "name" in data:
@@ -178,10 +148,6 @@ def update_hospital(slug):
     for key in ("lat", "lng"):
         if key in data:
             setattr(f, key, _float(data.get(key)))
-    if "active" in data:
-        if user.role != "network_admin":
-            return jsonify({"error": "Only the network admin can suspend a hospital."}), 403
-        f.active = bool(data["active"])
     db.session.commit()
     return jsonify(f.to_dict())
 
