@@ -5,6 +5,7 @@ import { addWardApi, updateWardApi } from '../../api/wards.js'
 import { ASSIGNABLE_ROLES, roleLabel } from '../../utils/roles.js'
 import Drawer, { FormError } from '../ui/Drawer.jsx'
 import { Check } from '../ui/icons.jsx'
+import PasswordInput from '../ui/PasswordInput.jsx'
 
 const tempPassword = () => `Clinvia-${Math.floor(1000 + Math.random() * 9000)}`
 
@@ -102,7 +103,7 @@ export function StaffDrawer({ staff, domain, done, close, canManage = true, isMe
             </select></div>
           <div className="field">
             <label htmlFor="s-p">{editing ? 'New password' : 'Temporary password'}</label>
-            <input id="s-p" value={f.password} onChange={set('password')} placeholder={editing ? 'Leave empty to keep the current one' : ''} />
+            <PasswordInput id="s-p" defaultVisible value={f.password} onChange={set('password')} placeholder={editing ? 'Leave empty to keep the current one' : ''} />
             <small>{editing ? 'They will be asked to change it at their next sign-in.' : 'They change it on first sign-in'}</small>
           </div>
           {editing && !isMe ? (
