@@ -2,6 +2,7 @@ from datetime import datetime, time, timedelta
 
 from flask import Blueprint, g, jsonify, request
 
+from .. import assistant
 from ..auth import authenticate_token, require_patient
 from ..clinical import adherence, clinic_today, lab_label, local, miss_streak, tz
 from ..extensions import db
@@ -190,3 +191,46 @@ def open_my_file(file_id):
     if not patient or not f or f.patient_id != patient.id:
         return jsonify({"error": "There is no such file."}), 404
     return file_response(f, patient)
+
+
+# A patient may ask the assistant at most this many questions in this window (per server process).
+ASSISTANT_LIMIT = 20
+ASSISTANT_WINDOW = timedelta(minutes=10)
+_asked = {}
+
+
+def _over_limit(user_id, now):
+    recent = [t for t in _asked.get(user_id, []) if now - t < ASSISTANT_WINDOW]
+    _asked[user_id] = recent + [now]
+    return len(recent) >= ASSISTANT_LIMIT
+
+
+def _treatment_facts(patient):
+    """The only patient data the assistant sees: treatment state, never identity."""
+    e = patient.active_episode
+    if not e:
+        return {"on_treatment": False}
+    today = clinic_today()
+    logs = DoseLog.query.filter_by(patient_id=patient.id).all()
+    log = {d.date: (d.taken, d.source) for d in logs}
+    return {
+        "on_treatment": True,
+        "regimen": e.regimen,
+        "day_of_treatment": (today - e.treatment_start).days + 1,
+        "adherence": adherence(log, today),
+        "missed_streak": miss_streak(log, today),
+        "dose_time": effective_dose_time(patient).strftime("%H:%M"),
+        "logged_today": today in log,
+    }
+
+
+@bp.post("/assistant")
+@authenticate_token
+@require_patient
+def ask_assistant():
+    patient = _me()
+    if not patient:
+        return jsonify({"error": "Connect your clinic record first."}), 400
+    if _over_limit(g.current_user.id, datetime.now()):
+        return jsonify({"error": "You've asked a lot of questions. Please wait a few minutes, or contact your clinic."}), 429
+    return jsonify(assistant.answer(_treatment_facts(patient), body().get("messages")))
