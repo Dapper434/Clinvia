@@ -69,7 +69,7 @@ export default function Privacy() {
                 'Your doctors, clinicians and nurses at your hospital see your full record, because they treat you.',
                 'Reception staff see your contact and appointment details, not your clinical information.',
                 'Hospital management sees counts and trends — how many patients, how treatment is going — not individual records.',
-                'A network administrator keeps the service running across hospitals and can reach records to support it.',
+                'A TB representative oversees the tuberculosis programme across every hospital, and can read records and reports to do that. They cannot register patients or record doses — that stays with your hospital.',
                 'Other hospitals using Clinvia cannot see your record at all.',
               ]} />
               <p>Your own portal account only ever opens your own record, and it stays connected to it by a one-time code your clinic gives you.</p>
