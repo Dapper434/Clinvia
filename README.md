@@ -29,7 +29,7 @@ Clinvia is a hospital management system with a TB programme built in. Every hosp
 ### 👥 Who sees what
 Staff accounts are created in-house by the hospital's administrator; there's no public staff sign-up. The email domain decides which hospital someone signs in to.
 
-From v2, Clinvia is built around three actors: the **patient**, the **doctor** and the **TB representative** (the v1 network administrator, still the `network_admin` role in code). The other roles keep working but aren't where new work goes. See [docs/ACTORS.md](docs/ACTORS.md).
+From v2, Clinvia is built around three actors: the **patient**, the **doctor** and the **TB representative** (the v1 network administrator, still the `network_admin` role in code). The other roles keep working but aren't where new work goes. See [docs/ACTORS.md](docs/ACTORS.md). v2 work starts from the git tag `v2-start`.
 
 | Role | Sees |
 |---|---|

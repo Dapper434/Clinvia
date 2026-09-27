@@ -4,6 +4,12 @@ Clinvia is a multi-hospital management app focused on tuberculosis (TB) care. Th
 is Flask + PostgreSQL in `backend/`, and the frontend is React 19 + Vite in `frontend/`.
 `backend-node-legacy/` is old and unused, so don't edit it.
 
+## Starting point for v2
+
+All v2 work starts from the git tag `v2-start`, the commit that introduced the three actors
+below. Branch from the latest `master`, and don't build on
+anything older than `v2-start`.
+
 ## The three actors (v2)
 
 From v2 on, Clinvia is built for **three actors**:
