@@ -126,7 +126,7 @@ def run(log=print):
         if not User.query.filter_by(email=new).first():
             session.execute(update(User).where(User.email == old).values(email=new))
 
-    def upsert_staff(email, name, role, specialty, duty, facility_id, pw_hash):
+    def upsert_staff(email, name, role, specialty, duty, facility_id, pw_hash, organisation=None, county=None):
         u = User.query.filter_by(email=email).first()
         if not u:
             u = User(id=gen_uuid(), email=email)
@@ -134,6 +134,8 @@ def run(log=print):
         u.full_name = name
         u.role = role
         u.specialty = specialty
+        u.organisation = organisation
+        u.county = county
         u.duty_status = duty
         u.facility_id = facility_id
         u.password_hash = pw_hash
@@ -146,10 +148,15 @@ def run(log=print):
         session.merge(Profile(id=u.id, full_name=name, role=role))
         return u
 
-    network_admin = upsert_staff(
-        f"{N.NETWORK_ADMIN['local']}@{N.NETWORK_DOMAIN}", N.NETWORK_ADMIN["name"], "network_admin",
-        N.NETWORK_ADMIN["specialty"], "on_duty", None, hashes["network"],
-    )
+    def upsert_representative(rep):
+        return upsert_staff(
+            f"{rep['local']}@{N.NETWORK_DOMAIN}", rep["name"], "network_admin", rep["specialty"], "on_duty",
+            None, hashes["network"], organisation=rep["organisation"], county=rep["county"],
+        )
+
+    network_admin = upsert_representative(N.NETWORK_ADMIN)
+    for rep in N.COUNTY_REPRESENTATIVES:
+        upsert_representative(rep)
 
     staff = {}  # slug -> list of (User, tags)
     for cfg in N.HOSPITALS:
@@ -600,7 +607,7 @@ def run(log=print):
     session.commit()
 
     summary = {
-        "hospitals": len(fac), "staff": sum(len(v) for v in staff.values()) + 1,
+        "hospitals": len(fac), "staff": sum(len(v) for v in staff.values()) + 1 + len(N.COUNTY_REPRESENTATIVES),
         "patients": len(patients), "portal accounts": len(patient_users), "TB episodes": len(episodes),
         "doses": len(doses), "medications": len(meds), "lab results": len(labs), "files": len(files),
         "wards": len(ward_rows), "beds": len(bed_rows), "admissions": len(admissions),
