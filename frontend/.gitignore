@@ -31,3 +31,6 @@ dist-ssr
 
 # Impeccable design workspace (briefs, decision pages, review screenshots)
 .impeccable/
+
+# Screenshots from npm run check:responsive -- SHOTS=1
+.responsive/

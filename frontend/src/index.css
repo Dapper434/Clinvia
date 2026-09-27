@@ -20,6 +20,16 @@ body {
   @apply bg-gray-50 text-gray-900 antialiased;
 }
 
+/* iOS Safari zooms the whole page into any field under 16px. !important so it also beats
+   Tailwind's text-sm/text-xs on the patient pages; phones and touch screens only. */
+@media (max-width: 860px), (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
 @media print {
   .cv .side,
   .cv .top .actions,

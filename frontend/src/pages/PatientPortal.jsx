@@ -33,7 +33,7 @@ import {
 
 const LAB_RESULT_TONE = { positive: 'bad', abnormal: 'warning', negative: 'good', normal: 'good', pending: 'warning' }
 const FILE_TYPES = [['referral', 'Referral letter'], ['lab_report', 'Lab report'], ['prescription', 'Prescription'], ['xray', 'Chest X-ray'], ['discharge_summary', 'Discharge summary']]
-const card = 'rounded-3xl border border-gray-200 bg-white p-6 shadow-sm'
+const card = 'rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6'
 const input = 'w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500'
 const niceDate = (s) => new Date(`${s.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
 
@@ -115,7 +115,7 @@ function BookAppointment({ doctors, onBooked }) {
       <div className="grid grid-cols-4 gap-1.5">
         {(slots?.slots || []).map((s) => (
           <button key={s.time} type="button" disabled={!s.free} onClick={() => setTime(s.time)}
-            className={`rounded-lg border py-1.5 text-xs ${s.time === time ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-200'} disabled:bg-gray-50 disabled:text-gray-400 disabled:line-through`}>
+            className={`rounded-lg border py-2 text-xs ${s.time === time ? 'border-teal-600 bg-teal-600 text-white' : 'border-gray-200'} disabled:bg-gray-50 disabled:text-gray-400 disabled:line-through`}>
             {s.time}
           </button>
         ))}
@@ -220,7 +220,7 @@ export default function PatientPortal() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      <div className="rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-500/10 via-white to-teal-500/5 p-6 sm:p-8 shadow-sm">
+      <div className="rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-500/10 via-white to-teal-500/5 p-5 sm:p-8 shadow-sm">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Hello, {patient.name.split(' ')[0]}</h1>
@@ -244,7 +244,7 @@ export default function PatientPortal() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {data.onTreatment ? (
           <>
             <StatsCard label="Adherence" value={adherence != null ? `${adherence}%` : '—'} icon={Activity}
@@ -260,7 +260,7 @@ export default function PatientPortal() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           {data.onTreatment ? (
-            <div className="rounded-3xl border-2 border-teal-500/30 bg-white p-6 sm:p-8 shadow-lg shadow-teal-500/5">
+            <div className="rounded-3xl border-2 border-teal-500/30 bg-white p-5 sm:p-8 shadow-lg shadow-teal-500/5">
               <div className="mb-2 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600"><Pill className="h-5 w-5" /></div>
                 <div>
@@ -292,7 +292,7 @@ export default function PatientPortal() {
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-gray-900">Appointments</h2>
               {!booking ? (
-                <button type="button" onClick={() => setBooking(true)} className="rounded-xl border border-teal-600 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50">Book an appointment</button>
+                <button type="button" onClick={() => setBooking(true)} className="rounded-xl border border-teal-600 px-3 py-2 text-xs font-semibold text-teal-700 hover:bg-teal-50">Book an appointment</button>
               ) : null}
             </div>
             {booking ? <BookAppointment doctors={data.doctors} onBooked={done} /> : null}
@@ -305,7 +305,7 @@ export default function PatientPortal() {
                         <p className="text-sm font-medium text-gray-900">{niceDate(a.at)} at {a.at.slice(11, 16)}</p>
                         <p className="text-xs text-gray-500">{a.reason} with {a.doctor}</p>
                       </div>
-                      <button type="button" className="text-xs font-semibold text-red-700 hover:underline"
+                      <button type="button" className="-my-2 py-2 text-xs font-semibold text-red-700 hover:underline"
                         onClick={async () => { await cancelMyAppointmentApi(a.id); await done('Appointment cancelled') }}>Cancel</button>
                     </div>
                   ))}
@@ -366,7 +366,7 @@ export default function PatientPortal() {
                 {data.files.map((f) => (
                   <li key={f.id} className="flex items-center justify-between gap-2 text-sm">
                     <span className="truncate text-gray-800">{FILE_TYPES.find(([k]) => k === f.type)?.[1]}</span>
-                    <button type="button" className="text-xs font-semibold text-teal-700 hover:underline"
+                    <button type="button" className="-my-2 px-2 py-2 text-xs font-semibold text-teal-700 hover:underline"
                       onClick={() => apiDownload(`/api/patient-portal/files/${f.id}`, f.name, { open: true }).catch((err) => setError(err.message))}>Open</button>
                   </li>
                 ))}
@@ -377,8 +377,8 @@ export default function PatientPortal() {
               <select id="up-type" className={input} value={upload.type} onChange={(e) => setUpload({ ...upload, type: e.target.value })}>
                 {FILE_TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
               </select>
-              <input type="file" accept="application/pdf,image/jpeg,image/png" className="block w-full text-xs" onChange={(e) => setUpload({ ...upload, file: e.target.files?.[0] || null })} />
-              <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl border border-teal-600 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50"><FileUp className="h-3.5 w-3.5" />Upload</button>
+              <input type="file" accept="application/pdf,image/jpeg,image/png" className="block w-full text-xs file:mr-3 file:rounded-lg file:border file:border-gray-300 file:bg-white file:px-3 file:py-2 file:text-xs file:font-medium" onChange={(e) => setUpload({ ...upload, file: e.target.files?.[0] || null })} />
+              <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl border border-teal-600 px-3 py-2 text-xs font-semibold text-teal-700 hover:bg-teal-50"><FileUp className="h-3.5 w-3.5" />Upload</button>
               <PrivacyNote facility={patient.facility} compact className="pt-1" />
             </form>
           </div>

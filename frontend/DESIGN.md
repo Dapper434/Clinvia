@@ -295,11 +295,14 @@ On ink surfaces the calendar uses brighter tints so cells read against the dark:
 
 The staff app is a two-column grid: a 232px sticky white sidebar and a main column with a sticky white top bar (16px 32px padding) over a `page` column (24px 32px 56px padding, max-width 1360px) that stacks blocks with a 22px gap. Content grids use 2:1, 1:1 and 1:2 splits at 22px gaps; the stat strip is a single bordered card divided into 5 (or 4) cells.
 
-Breakpoints: at 1180px content grids collapse to one column, the stat strip goes to 3 (or 2) columns and the attention panel stacks. At 860px the sidebar becomes an off-canvas drawer (260px, slide transform 0.2s), side padding drops to 16px, forms go single-column, and the calendar tightens to 4px gaps with markers hidden.
+Breakpoints: at 1180px content grids collapse to one column, the stat strip goes to 3 (or 2) columns and the attention panel stacks. At 860px the sidebar becomes an off-canvas drawer (260px, slide transform 0.2s) over the ink scrim (a tap on the scrim or Escape closes it), side padding drops to 16px, panels pad 16px, forms go single-column, the map shrinks to min(560px, 65vh), and the calendar tightens to 4px gaps with markers hidden. Segmented controls and tables scroll sideways rather than clip.
 
 Entry pages (landing and sign-in) use their own frame: on desktop the ink dose field takes the left column (1.3fr) and content sits right (1fr) on paper, with the content body vertically centred at max 440px and padding clamp(24px, 5vw, 72px). Under 900px the frame goes content first, field below; the calendar header restacks (title, then the patient nav, then the figure with the progress marks beside it), weekday and date gaps tighten from 6px to 4px, dates go to a 1/.92 aspect, and the feed drops its reserved height. The calendar keeps all seven columns at every width.
 
 Spacing rhythm, as used: 6px (cell and pill gaps), 10px (nav and control gaps), 14px (field gaps, panel header margin), 18 to 22px (panel padding and block gap), 32px (page side padding, entry form offset).
+
+### Named Rules
+**The Every-Screen Rule.** Every page works from a 360px phone to a wide desktop, and no feature is hidden on a small screen, only rearranged. Nothing may run past the screen edge (the page clips sideways overflow, so it would simply vanish). On phones, tap targets are at least 32px tall (buttons 40px) and form fields are 16px so iOS doesn't zoom. `npm run check:responsive` checks every route against this.
 
 ## Elevation & Depth
 
@@ -353,7 +356,7 @@ Quiet, compact and bordered; the primary is the only filled one.
 
 ### Navigation
 - **Sidebar:** white, hairline right border, 20px 14px padding. Group labels 12px ink-3 weight 500 (sentence case). Items 8px 10px, 8px radius, ink-2 weight 500; hover to paper fill and ink; active on teal-wash with deep-teal text. Counts sit right as a red round badge (11.5px, white).
-- **Top bar:** sticky, white, hairline bottom border; 20px weight-600 title with a 14px ink-3 suffix; actions right. Under 860px a menu button appears and only primary actions remain.
+- **Top bar:** sticky, white, hairline bottom border; 20px weight-600 title with a 14px ink-3 suffix; actions right. Under 860px a menu button appears beside the title and every action moves to one sideways-scrolling row beneath it, the primary action first. Nothing is hidden.
 - **Segmented control:** one bordered 8px group; the selected segment fills ink with white text.
 
 ### Tables

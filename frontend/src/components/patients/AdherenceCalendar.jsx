@@ -67,7 +67,7 @@ export default function AdherenceCalendar({ treatmentStart, doseLogs, subtitle }
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
+    <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-5">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Adherence calendar</h3>
@@ -94,7 +94,7 @@ export default function AdherenceCalendar({ treatmentStart, doseLogs, subtitle }
       </div>
       <div
         ref={gridRef}
-        className="relative mt-4 grid max-h-64 grid-cols-[repeat(20,minmax(0,1fr))] gap-1 overflow-auto p-0.5 sm:grid-cols-[repeat(30,minmax(0,1fr))]"
+        className="relative mt-4 grid max-h-64 grid-cols-[repeat(10,minmax(0,1fr))] gap-1 overflow-auto p-0.5 sm:grid-cols-[repeat(15,minmax(0,1fr))] lg:grid-cols-[repeat(30,minmax(0,1fr))]"
       >
         {cells.map((c) => (
           <div

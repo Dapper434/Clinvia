@@ -30,7 +30,7 @@ export default function Privacy() {
     <div className="min-h-screen bg-gray-50 px-4 py-8 sm:py-12">
       <div className="mx-auto max-w-3xl">
         <button type="button" onClick={back}
-          className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:underline">
+          className="-my-2 inline-flex items-center gap-2 py-2 text-sm font-medium text-teal-700 hover:underline">
           <ArrowLeft className="h-4 w-4" />
           Back
         </button>
