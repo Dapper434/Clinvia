@@ -33,7 +33,7 @@ From v2, Clinvia is built around three actors: the **patient**, the **doctor** a
 
 | Role | Sees |
 |---|---|
-| **TB representative** (v2 actor) | Every hospital, one at a time or combined; can search people across the network and suspend a hospital |
+| **TB representative** (v2 actor) | Ministry of Health, county or NGO users: counts and percentages for every hospital (or their county's), one at a time or combined. No patient or staff names |
 | Hospital administrator | Everything in their hospital; manages staff, wards and hospital settings |
 | Executive (e.g. CEO) | Their hospital's totals, trends and reports — not individual patient records |
 | **Doctor** (v2 actor) / clinician | Full clinical records in their hospital; doctors can switch the dashboard to their own patients and schedule |
