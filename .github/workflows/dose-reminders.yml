@@ -18,6 +18,12 @@ jobs:
           API_URL: ${{ secrets.CLINVIA_API_URL }}
           CRON_SECRET: ${{ secrets.REMINDER_CRON_SECRET }}
         run: |
+          for name in API_URL CRON_SECRET; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Repository secret for $name is not set (Settings → Secrets and variables → Actions: CLINVIA_API_URL, REMINDER_CRON_SECRET)."
+              exit 1
+            fi
+          done
           # --max-time covers Render's cold start (~30-60s) on the first call after it sleeps.
           curl --fail-with-body --silent --show-error --max-time 120 --retry 2 --retry-delay 20 \
             -X POST "$API_URL/api/reminders/run" \
