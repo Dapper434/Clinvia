@@ -47,3 +47,8 @@ class Config:
     NETWORK_EMAIL_DOMAIN = os.environ.get("NETWORK_EMAIL_DOMAIN", "clinvia.health").lower()
     # First-line TB drugs are taken once daily on an empty stomach, i.e. before breakfast.
     DEFAULT_DOSE_TIME = os.environ.get("DEFAULT_DOSE_TIME", "07:00")
+
+    # Patient "Talk to AI" companion: any OpenAI-compatible chat API. Without a key it answers from safe rules.
+    AI_API_KEY = os.environ.get("AI_API_KEY", "")
+    AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.groq.com/openai/v1")
+    AI_MODEL = os.environ.get("AI_MODEL", "llama-3.3-70b-versatile")
