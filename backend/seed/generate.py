@@ -18,6 +18,7 @@ from sqlalchemy import delete, func, select, text, update
 
 from app.auth import hash_password
 from app.extensions import db
+from app.prescribing import EPTB_SITES, regimen_for, regimen_plan
 from app.models import (
     Admission,
     Appointment,
@@ -44,6 +45,17 @@ PEOPLE = json.loads((Path(__file__).parent / "people.json").read_text())
 def h(key):
     """Stable pseudo-random 0..2^31-1 from any text key."""
     return int.from_bytes(hashlib.sha256(key.encode()).digest()[:4], "big") & 0x7FFFFFFF
+
+
+def _weight_for(age, code):
+    """A plausible weight, so the seeded patients fall across the WHO dosing bands."""
+    if age < 15:
+        base = 3 + 2.2 * age  # roughly the WHO growth reference through childhood
+        spread = (h("wt" + code) % 9) - 4
+    else:
+        base = 62
+        spread = (h("wt" + code) % 45) - 20
+    return round(max(4.0, base + spread), 1)
 
 
 def _num(code):
@@ -204,6 +216,9 @@ def run(log=print):
             "age": p["age"],
             "gender": p["gender"],
             "phone": p["phone"],
+            "email": f"{p['name'].lower().replace(' ', '.')}.{code.lower()}@{N.PATIENT_DOMAIN}",
+            "weight_kg": _weight_for(p["age"], code),
+            "weight_taken_on": today - timedelta(days=h("wd" + code) % 21),
             "address": f"{cfg['sub_county']}, {cfg['county']} County",
             "facility_id": f.id,
             "lat": round(f.lat + ((h("lat" + code) % 200) - 100) / 2000.0, 5),
@@ -281,9 +296,16 @@ def run(log=print):
             outcome_date = start + timedelta(
                 days={"died": 95, "lost_to_follow_up": 70}.get(outcome, 182)
             )
+        eptb_site = EPTB_SITES[h("site" + code) % len(EPTB_SITES)] if tb_type == "extra_pulmonary" else None
+        # Most of a cohort is new and confirmed on GeneXpert; a few are retreatments.
+        history = "relapse" if h("hist" + code) % 11 == 0 else "new"
+        resistance = "mdr" if mdr else "susceptible"
+        regimen = regimen_for(tb_type, eptb_site, resistance, patients[code]["age"])[0]
         episodes[code] = {
             "id": gen_uuid(), "patient_id": patients[code]["id"], "tb_type": tb_type,
-            "regimen": "BPaLM" if mdr else "2HRZE/4HR", "treatment_start": start, "phase": phase,
+            "eptb_site": eptb_site, "diagnosis_basis": "clinical" if h("dx" + code) % 7 == 0 else "bacteriological",
+            "treatment_history": history, "resistance": resistance,
+            "regimen": regimen, "treatment_start": start, "phase": phase,
             "status": outcome, "mdr_flag": mdr, "outcome_date": outcome_date,
             "created_at": at(start, 10, 0),
         }
@@ -316,23 +338,21 @@ def run(log=print):
 
     # ------------------------------------------------------------------ medications
     meds = []
-    first_line = [("Isoniazid", "300 mg"), ("Rifampicin", "600 mg"), ("Pyrazinamide", "1500 mg"),
-                  ("Ethambutol", "1100 mg"), ("Pyridoxine (vitamin B6)", "25 mg")]
-    bpalm = [("Bedaquiline", "200 mg", "3 times weekly"), ("Pretomanid", "200 mg", "Once daily"),
-             ("Linezolid", "600 mg", "Once daily"), ("Moxifloxacin", "400 mg", "Once daily")]
+    # TB medication comes from the same regimen builder the doctor uses, so the seeded
+    # doses match the patient's weight band exactly as a real prescription would.
     for code, e in episodes.items():
-        doctor = patients[code]["assigned_doctor_id"]
+        p, doctor = patients[code], patients[code]["assigned_doctor_id"]
         closed = e["status"] != "active"
-        if e["mdr_flag"]:
-            for drug, dose, freq in bpalm:
-                meds.append(_med(patients[code]["id"], drug, dose, freq, e["treatment_start"],
-                                 e["outcome_date"] if closed else None, doctor, not closed))
-        else:
-            for drug, dose in first_line:
-                stops = e["phase"] == "continuation" and drug in ("Pyrazinamide", "Ethambutol")
-                end = e["treatment_start"] + timedelta(days=56) if stops else (e["outcome_date"] if closed else None)
-                meds.append(_med(patients[code]["id"], drug, dose, "Once daily", e["treatment_start"],
-                                 end, doctor, not closed and not stops))
+        plan = regimen_plan(site=e["tb_type"], eptb_site=e["eptb_site"], resistance=e["resistance"],
+                            age=p["age"], weight_kg=p["weight_kg"])
+        for line in plan["lines"]:
+            start = e["treatment_start"] + timedelta(days=line["from"])
+            end = start + timedelta(days=line["days"]) if line["days"] else None
+            if closed and (end is None or end > e["outcome_date"]):
+                end = e["outcome_date"]
+            meds.append(_med(p["id"], line["drug"], line["dose"], line["freq"], start, end, doctor,
+                             not closed and start <= today and (end is None or end >= today),
+                             from_regimen=True))
     general_meds = [("Amoxicillin", "500 mg", "8 hourly", 7), ("Paracetamol", "1 g", "6 hourly", 5),
                     ("Metformin", "500 mg", "12 hourly", None), ("Amlodipine", "5 mg", "Once daily", None),
                     ("Ceftriaxone", "1 g", "12 hourly", 7), ("Omeprazole", "20 mg", "Once daily", 14)]
@@ -628,9 +648,10 @@ def _link_code():
     return f"{raw[:4]}-{raw[4:]}"
 
 
-def _med(patient_id, drug, dose, freq, start, end, doctor, active):
+def _med(patient_id, drug, dose, freq, start, end, doctor, active, from_regimen=False):
     return {"id": gen_uuid(), "patient_id": patient_id, "drug_name": drug, "dose": dose, "frequency": freq,
-            "start_date": start, "end_date": end, "prescribed_by": doctor, "active": active}
+            "start_date": start, "end_date": end, "prescribed_by": doctor, "active": active,
+            "from_regimen": from_regimen}
 
 
 def _lab(patient_id, test, result, collected, reported, notes=None, mdr=False):
