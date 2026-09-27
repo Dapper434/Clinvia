@@ -3,6 +3,7 @@ import { Bell, BellOff, BellRing, Check } from 'lucide-react'
 import { getVapidPublicKeyApi, sendTestPushApi, subscribePushApi, unsubscribePushApi } from '../../api/push.js'
 import { disablePush, enablePush, getExistingSubscription, pushSupport } from '../../utils/push.js'
 import { formatDoseTime } from '../../utils/doseTimes.js'
+import ReminderStylePicker from './ReminderStylePicker.jsx'
 
 const HELP = {
   'not-configured': 'Reminders aren’t set up on the server yet. Ask your clinic.',
@@ -150,6 +151,8 @@ export default function ReminderCard({ reminder }) {
       </div>
 
       {note ? <p className="mt-3 text-xs text-gray-500">{note}</p> : null}
+
+      <ReminderStylePicker reminder={reminder} />
     </div>
   )
 }
