@@ -14,8 +14,8 @@
 :focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:4px}
 [hidden]{display:none!important}
 .cv .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-.cv .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
-.cv .side{background:var(--surface);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.cv .app{display:grid;grid-template-columns:232px 1fr;min-height:100vh;min-height:100dvh}
+.cv .side{background:var(--surface);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
 .cv .brand{display:flex;align-items:center;gap:10px;padding:0 8px;text-decoration:none}
 .cv .brand-mark{width:30px;height:30px;border-radius:8px;background:var(--teal-wash);border:1px solid rgba(14,124,112,.2);color:var(--teal);display:grid;place-items:center;flex-shrink:0}
 .cv .brand b{font-size:16px;letter-spacing:-.01em}
@@ -87,10 +87,12 @@
 .cv .muted{color:var(--ink-3)}
 .cv .lead{color:var(--ink-2);max-width:70ch}
 .cv .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.cv .search{flex:1;min-width:220px;position:relative}
+.cv .search{flex:1;min-width:min(220px,100%);position:relative}
 .cv .search input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
 .cv .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--ink-3)}
-.cv .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.cv .seg{display:inline-flex;max-width:100%;border:1px solid var(--line);border-radius:8px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;background:var(--surface)}
+.cv .seg::-webkit-scrollbar{display:none}
+.cv .seg > *{flex-shrink:0;white-space:nowrap}
 .cv .seg button{padding:7px 12px;font-size:13px;color:var(--ink-2);border-left:1px solid var(--line)}
 .cv .seg button:first-child{border-left:0}
 .cv .seg button.on{background:var(--ink);color:#fff}
@@ -152,10 +154,11 @@
 .cv .back{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);font-weight:500;font-size:13px;text-decoration:none;align-self:flex-start}
 .cv .back:hover{color:var(--ink)}
 .cv .ph{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
-.cv .ph-id{display:flex;gap:16px;align-items:center}
+.cv .ph-id{display:flex;gap:16px;align-items:center;min-width:0}
+.cv .ph-id > div{min-width:0}
 .cv .avatar{width:56px;height:56px;border-radius:50%;background:var(--teal-wash);color:var(--teal-2);display:grid;place-items:center;font-weight:600;font-size:18px;flex-shrink:0}
 .cv .ph h2{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
-.cv .ph-meta{color:var(--ink-2);font-size:13.5px;margin-top:2px}
+.cv .ph-meta{color:var(--ink-2);font-size:13.5px;margin-top:2px;overflow-wrap:anywhere}
 .cv .ph .pills{margin-top:8px}
 .cv .facts{display:grid;grid-template-columns:repeat(3,auto);gap:6px 28px;font-size:13px}
 .cv .facts dt{color:var(--ink-3)}
@@ -247,9 +250,10 @@
 .cv .drawer-h{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line)}
 .cv .drawer-h h2{font-size:17px;font-weight:600}
 .cv .drawer-b{padding:20px 22px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:16px}
-.cv .drawer-f{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.cv .drawer-f{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.cv .side-scrim{display:none}
 .cv .drawer .fields{grid-template-columns:1fr}
-.cv .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;z-index:30;box-shadow:0 8px 24px rgba(22,48,43,.25)}
+.cv .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);text-align:center;background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;z-index:30;box-shadow:0 8px 24px rgba(22,48,43,.25)}
 .cv .hint{background:var(--paper);border-radius:8px;padding:10px 12px;font-size:12.5px;color:var(--ink-2)}
 @media (max-width:1180px){
   .cv .g-2-1,.cv .g-1-1,.cv .g-1-2{grid-template-columns:1fr}
@@ -266,8 +270,26 @@
   .cv .side{position:fixed;left:0;top:0;z-index:25;width:260px;transform:translateX(-100%);transition:transform .2s}
   .cv .side.open{transform:none;box-shadow:12px 0 40px rgba(22,48,43,.18)}
   .cv .btn.menu-btn{display:inline-flex}
+  .cv .side-scrim{display:block;z-index:24}
   .cv .top,.cv .page{padding-left:16px;padding-right:16px}
-  .cv .top .actions .btn:not(.primary):not(.menu-btn){display:none}
+  .cv .top{padding-top:10px;padding-bottom:10px;gap:10px}
+  .cv .top > .actions:first-child{flex-wrap:nowrap;min-width:0}
+  .cv .top h1{min-width:0}
+  /* Every top-bar action stays reachable: one sideways-scrolling row, primary first. */
+  .cv .top > .actions:last-child{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;width:calc(100% + 32px);margin:0 -16px;padding:0 16px}
+  .cv .top > .actions:last-child::-webkit-scrollbar{display:none}
+  .cv .top > .actions:last-child:empty{display:none}
+  .cv .top > .actions:last-child .btn.primary{order:-1}
+  .cv .page{padding-top:18px;gap:18px}
+  .cv .panel,.cv .fieldset{padding:16px}
+  .cv #map,.cv .map-fallback{height:min(560px,65vh)}
+  /* Touch targets: nothing tappable under 32px, main buttons at 40px. */
+  .cv .btn{min-height:40px}
+  .cv .btn.sm{min-height:34px}
+  .cv .seg button{min-height:36px}
+  .cv .pw-wrap .pw-eye{width:40px;height:36px;right:2px}
+  .cv button.link,.cv .who a{display:inline-block;padding-block:7px;margin-block:-7px}
+  .cv .back,.cv .adh-row a{padding-block:7px;margin-block:-7px}
   .cv .stats,.cv .stats.four{grid-template-columns:repeat(2,1fr)}
   .cv .stats .stat{border-left:0;border-top:1px solid var(--line)}
   .cv .stats .stat:nth-child(-n+2){border-top:0}

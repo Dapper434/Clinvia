@@ -23,6 +23,14 @@ export default function AppShell() {
 
   useEffect(() => () => clearTimeout(timer.current), [])
 
+  // The off-canvas menu on narrow screens closes on Escape as well as on the scrim.
+  useEffect(() => {
+    if (!menuOpen) return undefined
+    const onKey = (e) => e.key === 'Escape' && setMenuOpen(false)
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [menuOpen])
+
   const value = useMemo(
     () => ({
       toast,
@@ -45,6 +53,7 @@ export default function AppShell() {
       <div className="cv">
         <div className="app">
           <Sidebar />
+          {menuOpen ? <div className="scrim side-scrim" onClick={() => setMenuOpen(false)} aria-hidden="true" /> : null}
           <div className="main">
             <Outlet />
           </div>
