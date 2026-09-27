@@ -32,7 +32,7 @@ function isDue(doseTime, today, now = new Date()) {
  * If the tab is in the background and notifications are allowed, a system
  * notification is shown once as well (web push still covers a closed app).
  */
-export default function DosePopup({ doseTime, today, isLogged, onCheckIn }) {
+export default function DosePopup({ doseTime, today, isLogged, onCheckIn, message }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const primaryRef = useRef(null)
@@ -45,13 +45,14 @@ export default function DosePopup({ doseTime, today, isLogged, onCheckIn }) {
       setOpen(true)
       if (!notified.current && document.hidden && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         notified.current = true
-        new Notification('Time for your TB medicine', { body: `It’s past ${doseTime}. Take today’s dose, then check in.`, tag: 'dose-reminder-local' })
+        // Lock screens are public: the system notification uses the discreet wording.
+        new Notification(message?.title || 'Time for your daily routine', { body: message?.body || 'Open Clinvia when you have a moment.', tag: 'dose-reminder-local' })
       }
     }
     const first = setTimeout(check, 0)
     const id = setInterval(check, CHECK_EVERY_MS)
     return () => { clearTimeout(first); clearInterval(id) }
-  }, [doseTime, today, isLogged])
+  }, [doseTime, today, isLogged, message])
 
   useEffect(() => { if (open) primaryRef.current?.focus() }, [open])
 
@@ -81,6 +82,7 @@ export default function DosePopup({ doseTime, today, isLogged, onCheckIn }) {
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-50 text-teal-600"><Pill className="h-5 w-5" aria-hidden="true" /></div>
         <h2 id="dose-popup-title" className="mt-4 text-lg font-bold text-gray-900">Time for your TB medicine</h2>
         <p id="dose-popup-text" className="mt-1 text-sm text-gray-600">It’s past {doseTime}. Take today’s dose, then check in so your care team can see you’re on track.</p>
+        {message?.body ? <p className="mt-3 rounded-2xl bg-teal-50/70 px-4 py-3 text-sm leading-relaxed text-teal-900">{message.body}</p> : null}
         <div className="mt-5 flex flex-col gap-2">
           <button ref={primaryRef} type="button" onClick={confirm} disabled={busy} className="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50">
             {busy ? 'Saving…' : 'I took today’s dose'}
