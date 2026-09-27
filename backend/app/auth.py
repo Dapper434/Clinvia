@@ -30,10 +30,15 @@ ACTORS = {
 
 # Capability -> roles allowed. The frontend mirrors this to hide what a role can't use,
 # but these checks are the ones that count.
+#
+# The TB representative (`network_admin`) works for the Ministry of Health, a county or an
+# NGO. They see numbers and percentages only: no patient or staff names anywhere. So they
+# get the aggregate views (dashboard, network overview, case map as unnamed dots, reports
+# and the summary export) and nothing that lists people.
 PERMISSIONS = {
     "dashboard.view": ALL_STAFF,
-    "patients.view": ALL_STAFF - {"executive"},
-    "patients.clinical": {"network_admin", "admin", "doctor", "clinician", "nurse"},
+    "patients.view": STAFF_ROLES - {"executive"},
+    "patients.clinical": {"admin", "doctor", "clinician", "nurse"},
     "patients.register": {"admin", "doctor", "clinician", "nurse", "receptionist"},
     "patients.edit": {"admin", "doctor", "clinician", "nurse", "receptionist"},
     "patients.care": {"admin", "doctor", "clinician"},
@@ -42,24 +47,25 @@ PERMISSIONS = {
     "meds.write": {"doctor", "clinician"},
     "files.upload": {"admin", "doctor", "clinician", "nurse"},
     "contacts.write": {"doctor", "clinician", "nurse"},
-    "appointments.view": ALL_STAFF - {"executive"},
+    "appointments.view": STAFF_ROLES - {"executive"},
     "appointments.book": {"admin", "doctor", "clinician", "receptionist"},
-    "queue.view": ALL_STAFF - {"executive"},
+    "queue.view": STAFF_ROLES - {"executive"},
     "queue.add": {"admin", "doctor", "clinician", "nurse", "receptionist"},
     "queue.call": {"admin", "doctor", "clinician", "nurse"},
-    "admissions.view": ALL_STAFF - {"executive"},
+    "admissions.view": STAFF_ROLES - {"executive"},
     "admissions.admit": {"admin", "doctor", "clinician"},
     "admissions.discharge": {"admin", "doctor", "clinician", "nurse"},
     "beds.ready": {"admin", "doctor", "clinician", "nurse"},
     "wards.manage": {"admin"},
-    "doses.view": {"network_admin", "admin", "doctor", "clinician", "nurse"},
+    "doses.view": {"admin", "doctor", "clinician", "nurse"},
     "doses.log": {"doctor", "clinician", "nurse"},
     "map.view": ALL_STAFF - {"receptionist"},
     "reports.view": {"network_admin", "admin", "executive", "doctor", "clinician"},
-    "reports.export": {"network_admin", "admin", "clinician"},
-    "staff.view": ALL_STAFF,
-    "staff.manage": {"network_admin", "admin"},
-    "hospital.settings": {"network_admin", "admin"},
+    "reports.export": {"admin", "clinician"},
+    "reports.summary": {"network_admin", "admin", "executive"},
+    "staff.view": STAFF_ROLES,
+    "staff.manage": {"admin"},
+    "hospital.settings": {"admin"},
     "network.view": {"network_admin"},
 }
 
@@ -208,24 +214,33 @@ class ScopeError(Exception):
     pass
 
 
+def representative_hospitals(user):
+    """Hospitals a TB representative oversees: every hospital, or one county's if they have one."""
+    from .models import Facility
+
+    q = Facility.query
+    if user.county:
+        q = q.filter(db.func.lower(Facility.county) == user.county.strip().lower())
+    return q
+
+
 def scope_ids():
     """Hospital ids the current request may see.
 
-    Staff: their own hospital only. Network admin: the hospital named in X-Hospital,
-    or every hospital when the header is absent or 'all'.
+    Staff: their own hospital only. TB representative: every hospital they oversee (all of
+    them, or their county's), or just the one named in X-Hospital.
     """
-    from .models import Facility
-
     user = g.current_user
     if user.role != "network_admin":
         return [user.facility_id] if user.facility_id else []
+    allowed = representative_hospitals(user)
     slug = (request.headers.get("X-Hospital") or request.args.get("hospital") or "").strip()
     if slug and slug != "all":
-        f = Facility.query.filter_by(slug=slug).first()
+        f = allowed.filter_by(slug=slug).first()
         if not f:
-            raise ScopeError(f"There is no hospital called {slug}.")
+            raise ScopeError(f"There is no hospital called {slug} in your area.")
         return [f.id]
-    return [f.id for f in Facility.query.with_entities(Facility.id).all()]
+    return [f.id for f in allowed.all()]
 
 
 def single_scope():
