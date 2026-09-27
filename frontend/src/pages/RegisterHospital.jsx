@@ -5,6 +5,7 @@ import AuthLayout, { Loader } from '../components/auth/AuthLayout.jsx'
 import { Check } from '../components/ui/icons.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { homePathForRole } from '../utils/roles.js'
+import PasswordInput from '../components/ui/PasswordInput.jsx'
 
 const STOP = new Set(['hospital', 'the', 'county', 'referral', 'level', 'national', 'mission', 'medical', 'centre', 'center', 'clinic', 'of', 'and', 'sub'])
 const suggestSlug = (name) =>
@@ -87,8 +88,8 @@ export default function RegisterHospital() {
               </div></div>
             <div className="field"><label htmlFor="rh-ap">Phone</label><input id="rh-ap" type="tel" value={f.adminPhone} onChange={set('adminPhone')} /></div>
             <div />
-            <div className="field"><label htmlFor="rh-pw">Password <em>*</em></label><input id="rh-pw" type="password" value={f.password} onChange={set('password')} autoComplete="new-password" /><small>At least 8 characters, with a number or symbol</small></div>
-            <div className="field"><label htmlFor="rh-pc">Password again <em>*</em></label><input id="rh-pc" type="password" value={f.confirm} onChange={set('confirm')} autoComplete="new-password" /></div>
+            <div className="field"><label htmlFor="rh-pw">Password <em>*</em></label><PasswordInput id="rh-pw" value={f.password} onChange={set('password')} autoComplete="new-password" /><small>At least 8 characters, with a number or symbol</small></div>
+            <div className="field"><label htmlFor="rh-pc">Password again <em>*</em></label><PasswordInput id="rh-pc" value={f.confirm} onChange={set('confirm')} autoComplete="new-password" /></div>
           </div>
         </div>
         {error ? <p className="warn" role="alert">{error}</p> : null}

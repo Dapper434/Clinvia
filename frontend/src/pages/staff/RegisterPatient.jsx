@@ -6,6 +6,7 @@ import { useShell } from '../../components/shell/shellContext.js'
 import { Check } from '../../components/ui/icons.jsx'
 import Page from '../../components/ui/Page.jsx'
 import { useAuth } from '../../context/useAuth.js'
+import PasswordInput from '../../components/ui/PasswordInput.jsx'
 
 const todayLocal = () => {
   const d = new Date()
@@ -112,7 +113,7 @@ export default function RegisterPatient() {
           <label className="check"><input type="checkbox" checked={f.portal} onChange={set('portal')} /> Create a portal account</label>
           <div className="fields" hidden={!f.portal} style={{ marginTop: 14 }}>
             <div className="field"><label htmlFor="f-email">Email <em>*</em></label><input id="f-email" type="email" value={f.email} onChange={set('email')} /></div>
-            <div className="field"><label htmlFor="f-pw">Temporary password</label><input id="f-pw" value={f.password} onChange={set('password')} /><small>The patient changes it on first sign-in</small></div>
+            <div className="field"><label htmlFor="f-pw">Temporary password</label><PasswordInput id="f-pw" defaultVisible value={f.password} onChange={set('password')} /><small>The patient changes it on first sign-in</small></div>
           </div>
           {!f.portal ? <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>You&apos;ll get a link code on the patient&apos;s record so they can set up the portal later.</p> : null}
         </fieldset>

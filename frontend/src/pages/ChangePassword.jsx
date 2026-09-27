@@ -4,6 +4,7 @@ import { changePasswordApi } from '../api/auth.js'
 import { Check, Mark } from '../components/ui/icons.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { homePathForRole } from '../utils/roles.js'
+import PasswordInput from '../components/ui/PasswordInput.jsx'
 
 /** Change password. Accounts created with a temporary password land here after first sign-in. */
 export default function ChangePassword() {
@@ -46,9 +47,9 @@ export default function ChangePassword() {
         <h3>{forced ? 'Choose your own password' : 'Change password'}</h3>
         <p>{forced ? 'You signed in with a temporary password. Pick a new one to continue.' : 'Use at least 8 characters, mixing letters with numbers or symbols.'}</p>
         <div className="fields" style={{ gridTemplateColumns: '1fr' }}>
-          <div className="field"><label htmlFor="pw-c">{forced ? 'Temporary password' : 'Current password'}</label><input id="pw-c" type="password" autoComplete="current-password" value={f.current} onChange={set('current')} /></div>
-          <div className="field"><label htmlFor="pw-n">New password</label><input id="pw-n" type="password" autoComplete="new-password" value={f.next} onChange={set('next')} /></div>
-          <div className="field"><label htmlFor="pw-r">New password again</label><input id="pw-r" type="password" autoComplete="new-password" value={f.confirm} onChange={set('confirm')} /></div>
+          <div className="field"><label htmlFor="pw-c">{forced ? 'Temporary password' : 'Current password'}</label><PasswordInput id="pw-c" autoComplete="current-password" value={f.current} onChange={set('current')} /></div>
+          <div className="field"><label htmlFor="pw-n">New password</label><PasswordInput id="pw-n" autoComplete="new-password" value={f.next} onChange={set('next')} /></div>
+          <div className="field"><label htmlFor="pw-r">New password again</label><PasswordInput id="pw-r" autoComplete="new-password" value={f.confirm} onChange={set('confirm')} /></div>
         </div>
         {error ? <p className="warn" role="alert" style={{ marginTop: 12 }}>{error}</p> : null}
         <div className="form-foot" style={{ marginTop: 16 }}>

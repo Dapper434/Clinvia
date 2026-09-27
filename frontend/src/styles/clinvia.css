@@ -286,3 +286,7 @@
   .cv .wd em{display:none}
 }
 @media (prefers-reduced-motion:reduce){.cv *,.cv *::before,.cv *::after{transition:none!important;animation:none!important}}
+.cv .pw-wrap{position:relative;width:100%;min-width:0}
+.cv .pw-eye{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:32px;height:30px;display:grid;place-items:center;border-radius:6px;color:var(--ink-3)}
+.cv .pw-eye:hover{color:var(--ink);background:var(--paper)}
+.cv .pw-wrap input::-ms-reveal{display:none}

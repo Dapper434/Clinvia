@@ -25,3 +25,5 @@ export const NavStaff = () => <N><circle cx="12" cy="8" r="4" /><path d="M4 21c1
 export const NavNetwork = () => <N><circle cx="12" cy="5" r="2.5" /><circle cx="5" cy="18" r="2.5" /><circle cx="19" cy="18" r="2.5" /><path d="M12 7.5v4M12 11.5l-5.5 4.5M12 11.5l5.5 4.5" /></N>
 export const NavDirectory = () => <N><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5M8.5 12.5c.5-1.4 1.4-2 2.5-2s2 .6 2.5 2M11 8.2h.01" /></N>
 export const NavSettings = () => <N><path d="M4 21V14M4 10V3M12 21V12M12 8V3M20 21V16M20 12V3M1 14h6M9 8h6M17 16h6" /></N>
+export const Eye = () => <S width="17" height="17" viewBox="0 0 24 24" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></S>
+export const EyeOff = () => <S width="17" height="17" viewBox="0 0 24 24" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M9.9 5.2A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a10.3 10.3 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18" /></S>

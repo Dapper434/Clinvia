@@ -5,6 +5,7 @@ import AuthLayout, { Loader } from '../components/auth/AuthLayout.jsx'
 import { Right } from '../components/ui/icons.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { homePathForRole } from '../utils/roles.js'
+import PasswordInput from '../components/ui/PasswordInput.jsx'
 
 const COPY = {
   hospital: {
@@ -67,7 +68,7 @@ export default function Login({ portal = 'hospital' }) {
         </div>
         <div className="field">
           <label htmlFor="password">Password</label>
-          <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <PasswordInput id="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </div>
         {error ? <p className="warn" role="alert">{error}</p> : null}
         <button className="btn primary" type="submit" disabled={busy} style={{ justifySelf: 'start' }}>

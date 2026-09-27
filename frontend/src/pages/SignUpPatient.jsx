@@ -4,6 +4,7 @@ import AuthLayout, { Loader } from '../components/auth/AuthLayout.jsx'
 import { Check } from '../components/ui/icons.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { homePathForRole } from '../utils/roles.js'
+import PasswordInput from '../components/ui/PasswordInput.jsx'
 
 export default function SignUpPatient() {
   const { user, role, signUpPatient, loading } = useAuth()
@@ -47,8 +48,8 @@ export default function SignUpPatient() {
         <div className="field"><label htmlFor="su-n">Full name <em>*</em></label><input id="su-n" value={f.fullName} onChange={set('fullName')} autoComplete="name" /></div>
         <div className="field"><label htmlFor="su-e">Email <em>*</em></label><input id="su-e" type="email" value={f.email} onChange={set('email')} autoComplete="email" /></div>
         <div className="field"><label htmlFor="su-p">Phone</label><input id="su-p" type="tel" value={f.phone} onChange={set('phone')} autoComplete="tel" /></div>
-        <div className="field"><label htmlFor="su-pw">Password <em>*</em></label><input id="su-pw" type="password" value={f.password} onChange={set('password')} autoComplete="new-password" /><small>At least 8 characters, with a number or symbol</small></div>
-        <div className="field"><label htmlFor="su-pc">Password again <em>*</em></label><input id="su-pc" type="password" value={f.confirm} onChange={set('confirm')} autoComplete="new-password" /></div>
+        <div className="field"><label htmlFor="su-pw">Password <em>*</em></label><PasswordInput id="su-pw" value={f.password} onChange={set('password')} autoComplete="new-password" /><small>At least 8 characters, with a number or symbol</small></div>
+        <div className="field"><label htmlFor="su-pc">Password again <em>*</em></label><PasswordInput id="su-pc" value={f.confirm} onChange={set('confirm')} autoComplete="new-password" /></div>
         {error ? <p className="warn" role="alert">{error}</p> : null}
         <button className="btn primary" type="submit" disabled={busy} style={{ justifySelf: 'start' }}><Check />Create account</button>
       </form>
