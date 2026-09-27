@@ -1,5 +1,7 @@
 # Clinvia v2 actors
 
+v2 starts at the git tag `v2-start`.
+
 From v2 on, Clinvia is built for **three actors**. Every new feature should serve at least
 one of them, and when a feature is designed, name the actor it's for.
 
