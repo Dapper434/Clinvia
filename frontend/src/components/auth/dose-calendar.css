@@ -1,0 +1,121 @@
+/* Dose calendar: one patient's month on the dark entry field. Cell and band
+   colours come from the entry frame (--cell-*, --band-*, --field-line). */
+.df{position:relative;width:min(560px,100%);display:flex;flex-direction:column;gap:16px;margin:0}
+
+/* Header: what this is, which month, how the patient is doing. */
+.df-head{display:grid;grid-template-columns:1fr auto;grid-template-areas:"title nav" "score prog";align-items:center;gap:12px 16px}
+.df-title{grid-area:title;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px}
+.df-title b{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.df-title span{color:#A8BDB8;font-size:12.5px}
+.df-nav{grid-area:nav;display:flex;align-items:center;gap:6px}
+.df-who{min-width:64px;text-align:center;font-size:13.5px;font-weight:600;color:#fff;letter-spacing:-.005em;font-variant-numeric:tabular-nums}
+.df-step{width:28px;height:28px;display:grid;place-items:center;border-radius:999px;border:1px solid var(--field-line);background:transparent;color:#C9D8D4;cursor:pointer;transition:background-color .15s ease,color .15s ease,opacity .2s ease}
+.df-step:hover:not(:disabled){background:rgba(255,255,255,.08);color:#fff}
+.df-step:focus-visible,.df-day:focus-visible{outline:2px solid var(--cell-t);outline-offset:2px}
+.df-score{grid-area:score;display:flex;align-items:baseline;gap:8px;font-size:12.5px;color:#A8BDB8}
+.df-score em{font-style:normal;font-weight:500}
+.df-pct{font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1;transition:color .4s ease}
+.b-none{color:#7F9A94} .b-good{color:var(--band-good)} .b-fair{color:var(--band-fair)} .b-poor{color:var(--band-poor)}
+/* Rotation: one mark per patient; the current one fills while its month is on show. */
+.df-prog{grid-area:prog;justify-self:end;display:flex;align-items:center;gap:5px}
+.df-prog i{position:relative;display:block;width:6px;height:6px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden;transition:background-color .3s ease}
+.df-prog i.on{width:22px;background:rgba(255,255,255,.14)}
+.df-prog i.on::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--cell-t);transform-origin:left;transform:scaleX(0)}
+.df-prog i.is-fade::after{transform:none}
+.df-prog.is-paused i::after{animation-play-state:paused}
+
+/* The month. A surface behind it breathes once the story is told; the dates never scale with it. */
+.df-grid{position:relative;margin-bottom:4px}
+.df-grid::before{content:"";position:absolute;inset:-12px -14px;border-radius:14px;background:rgba(255,255,255,.01);box-shadow:inset 0 0 0 1px rgba(255,255,255,.022),0 0 0 0 rgba(63,178,162,0);pointer-events:none}
+.df-cal{position:relative}
+.df-wk,.df-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.df-wk{margin-bottom:8px;font-size:11.5px;font-weight:500;color:#8FA8A2;text-align:center}
+
+/* A date: its number, and one dot for what happened with the dose. */
+.df-day{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;aspect-ratio:1/.8;padding:0;border-radius:8px;border:1px solid transparent;background:transparent;color:#DDE8E5;font:inherit;cursor:pointer;transition:background-color .2s ease,border-color .2s ease,transform .2s var(--ease-out)}
+.df-day:not(.is-out){background:rgba(255,255,255,.028)}
+.df-day.is-out{color:#6F8A84}
+.df-day.is-other .df-num{width:auto;font-size:11.5px;color:#8FA8A2}
+.df-day.is-other:not(.is-out){background:rgba(255,255,255,.018)}
+.df-num{position:relative;z-index:1;display:grid;place-items:center;width:26px;height:26px;border-radius:999px;font-size:13px;font-weight:500;line-height:1;font-variant-numeric:tabular-nums}
+.df-dot{position:relative;z-index:1;display:block;width:6px;height:6px;border-radius:999px;background:var(--cell-n);transform:scale(.6);transition:background-color .35s ease,transform .45s var(--ease-out)}
+.df-day.is-out .df-dot{visibility:hidden}
+.df-day.on .df-dot{transform:none}
+.df-day.on.c-t .df-dot{background:var(--cell-t)}
+.df-day.on.c-p .df-dot{background:var(--cell-p)}
+.df-day.on.c-m .df-dot{background:var(--cell-m)}
+.df-day.on.c-n .df-dot{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+.df-day.is-sel{border-color:rgba(255,255,255,.26);background:rgba(255,255,255,.05)}
+.df-day.is-head{border-color:rgba(255,255,255,.3)}
+@media (hover:hover){
+  .df-day:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);transform:scale(1.03)}
+}
+
+/* Today: a fine ring around the date. */
+.df-day.is-today .df-num{color:#fff;box-shadow:0 0 0 1px var(--cell-t)}
+
+/* The missed streak: a coral band drawn through the days, left to right. */
+.df-day.in-streak::before{content:"";position:absolute;inset:-1px -3px;background:rgba(240,122,98,.12);border-block:1px solid rgba(240,122,98,.45)}
+.df-day.in-streak.streak-start::before{left:-1px;border-left:1px solid rgba(240,122,98,.45);border-radius:8px 0 0 8px}
+.df-day.in-streak.streak-end::before{right:-1px;border-right:1px solid rgba(240,122,98,.45);border-radius:0 8px 8px 0}
+.df-day.in-streak.streak-start.streak-end::before{border-radius:8px}
+
+/* The selected date, told in one line. */
+.df-detail{display:flex;align-items:center;gap:8px;min-height:20px;margin:0;font-size:13px;color:#DDE8E5}
+.df-detail time{font-weight:600;color:#fff}
+.df-detail-today{padding:1px 8px;border-radius:999px;border:1px solid rgba(63,178,162,.45);color:var(--band-good);font-size:11.5px;font-weight:500}
+.df-detail .df-dot{transform:none;width:7px;height:7px}
+.df-detail .c-t{background:var(--cell-t)} .df-detail .c-p{background:var(--cell-p)} .df-detail .c-m{background:var(--cell-m)}
+.df-detail .c-n{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+.df-detail .c-x{visibility:hidden}
+
+/* Clinic events, in the order they happened; space is reserved so nothing below jumps. */
+.df-feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;min-height:96px}
+.df-ev{padding:11px 14px;border-radius:10px;background:#20403A;border:1px solid var(--field-line);font-size:13.5px;color:#DDE8E5;box-shadow:0 6px 18px -10px rgba(0,0,0,.55)}
+.df-ev-flag b{color:var(--band-poor)}
+.df-ev-checkin b{color:var(--cell-p)}
+.df-ev-observed b{color:var(--cell-t)}
+.df-ev-pending b{color:#C9D8D4}
+.df-grid,.df-feed,.df-detail{transition:opacity .28s ease}
+.df.is-resetting .df-grid,.df.is-resetting .df-feed,.df.is-resetting .df-detail{opacity:0}
+
+.df-legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0;font-size:12px;color:#A8BDB8}
+.df-legend div{display:flex;align-items:center;gap:7px}
+.df-legend dt i{display:block;width:8px;height:8px;border-radius:999px}
+.df-legend dd{margin:0}
+.df-legend i.c-t{background:var(--cell-t)} .df-legend i.c-p{background:var(--cell-p)} .df-legend i.c-m{background:var(--cell-m)}
+.df-note{color:#8FA8A2;font-size:11.5px}
+
+/* Motion: arrivals only while the month plays; the resting pulse and breath only once it is told. */
+@media (prefers-reduced-motion:no-preference){
+  .df-prog i.is-hold::after{animation:df-hold var(--hold,7s) linear forwards}
+  .df:not(.is-static) .df-ev{animation:df-ev-in .55s var(--ease-out) both}
+  .df:not(.is-static) .df-ev-flag{animation-duration:.7s;animation-delay:.55s}
+  .df:not(.is-static) .df-day.on.c-m .df-dot{animation:df-miss .7s var(--ease-out)}
+  .df:not(.is-static) .df-day.in-streak::before{animation:df-band .45s var(--ease-out) both;animation-delay:calc(var(--si,0) * 90ms)}
+  .df.is-done .df-grid::before{animation:df-breathe 3.6s ease-in-out infinite}
+  .df.is-done .df-day.is-today .df-num{animation:df-today 3.6s ease-in-out infinite}
+  .df-detail{animation:df-detail-in .25s ease-out}
+}
+@keyframes df-ev-in{from{opacity:0;transform:translateY(10px);filter:blur(3px)}}
+@keyframes df-breathe{50%{transform:scale(1.015);background:rgba(255,255,255,.022);box-shadow:inset 0 0 0 1px rgba(255,255,255,.045),0 0 28px -6px rgba(63,178,162,.12)}}
+@keyframes df-today{0%,100%{box-shadow:0 0 0 1px rgba(63,178,162,.5),0 0 0 0 rgba(63,178,162,0)}50%{box-shadow:0 0 0 1px rgba(63,178,162,1),0 0 10px 1px rgba(63,178,162,.22);transform:scale(1.015)}}
+@keyframes df-miss{0%{box-shadow:0 0 0 0 rgba(240,122,98,.65)}100%{box-shadow:0 0 0 6px rgba(240,122,98,0)}}
+@keyframes df-band{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes df-hold{to{transform:scaleX(1)}}
+@keyframes df-detail-in{from{opacity:0;transform:translateY(3px)}}
+
+@media (prefers-reduced-motion:reduce){
+  .df-day,.df-dot,.df-grid,.df-feed,.df-detail,.df-ev,.df-step,.df-prog i{transition:none}
+  .df-prog i.on::after{transform:none}
+}
+
+@media (max-width:900px){
+  .df{gap:14px}
+  .df-head{grid-template-areas:"title title" "nav nav" "score prog"}
+  .df-nav{justify-self:start;margin-left:-4px}
+  .df-feed{min-height:0}
+  .df-wk,.df-days{gap:4px}
+  .df-day{aspect-ratio:1/.92;gap:4px}
+  .df-day.in-streak::before{inset:-1px -2px}
+}
