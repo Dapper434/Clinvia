@@ -219,8 +219,8 @@ export default function PatientPortal() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <div className="rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-500/10 via-white to-teal-500/5 p-6 sm:p-8 shadow-sm">
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-500/10 via-white to-teal-500/5 px-6 py-5 sm:px-7 sm:py-6 shadow-sm">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Hello, {patient.name.split(' ')[0]}</h1>
@@ -244,7 +244,7 @@ export default function PatientPortal() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {data.onTreatment ? (
           <>
             <StatsCard label="Adherence" value={adherence != null ? `${adherence}%` : '—'} icon={Activity}
@@ -256,10 +256,10 @@ export default function PatientPortal() {
         <StatsCard label="Appointments" value={upcoming.length} icon={CalendarPlus} tone="neutral" hint={upcoming[0] ? `Next: ${niceDate(upcoming[0].at)}` : 'None booked'} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid items-start gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           {data.onTreatment ? (
-            <div className="rounded-3xl border-2 border-teal-500/30 bg-white p-6 sm:p-8 shadow-lg shadow-teal-500/5">
+            <div className="rounded-3xl border-2 border-teal-500/30 bg-white p-6 shadow-lg shadow-teal-500/5">
               <div className="mb-2 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600"><Pill className="h-5 w-5" /></div>
                 <div>
@@ -276,7 +276,7 @@ export default function PatientPortal() {
               ) : (
                 <>
                   <p className="mt-2 text-sm text-gray-600">Took your TB medicine today? Check in so your care team can see you&apos;re on track.</p>
-                  <div className="mt-6 flex flex-wrap items-center gap-4 border-t border-gray-100 pt-4">
+                  <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-gray-100 pt-4">
                     <button type="button" disabled={saving} onClick={checkIn} className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-50">
                       {saving ? 'Saving…' : 'I took today’s dose'}
                     </button>
@@ -313,6 +313,42 @@ export default function PatientPortal() {
             ) : null}
           </div>
 
+          {data.medications.length ? (
+            <div className={card}>
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Current medication</p>
+              <ul className="mt-3 space-y-2">
+                {data.medications.map((m) => (
+                  <li key={m.id} className="break-words text-sm"><span className="font-medium text-gray-900">{m.drug}</span> <span className="text-gray-500">{m.dose}, {m.freq.toLowerCase()}</span></li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className={card}>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">My documents</p>
+            {data.files.length ? (
+              <ul className="mt-3 space-y-2">
+                {data.files.map((f) => (
+                  <li key={f.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="truncate text-gray-800">{FILE_TYPES.find(([k]) => k === f.type)?.[1]}</span>
+                    <button type="button" className="text-xs font-semibold text-teal-700 hover:underline"
+                      onClick={() => apiDownload(`/api/patient-portal/files/${f.id}`, f.name, { open: true }).catch((err) => setError(err.message))}>Open</button>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="mt-3 text-sm text-gray-500">Nothing yet.</p>}
+            <form onSubmit={sendFile} className="mt-4 border-t border-gray-100 pt-4">
+              <label htmlFor="up-type" className="text-xs text-gray-600">Share a document with your care team</label>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <select id="up-type" className={`${input} sm:w-48`} value={upload.type} onChange={(e) => setUpload({ ...upload, type: e.target.value })}>
+                  {FILE_TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+                <input type="file" accept="application/pdf,image/jpeg,image/png" aria-label="Document file" className="block min-w-0 flex-1 text-xs" onChange={(e) => setUpload({ ...upload, file: e.target.files?.[0] || null })} />
+                <button type="submit" className="inline-flex flex-shrink-0 items-center justify-center gap-1.5 rounded-xl border border-teal-600 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50"><FileUp className="h-3.5 w-3.5" />Upload</button>
+              </div>
+              <PrivacyNote facility={patient.facility} compact className="mt-3" />
+            </form>
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -332,49 +368,11 @@ export default function PatientPortal() {
           <NearestClinic patient={patient} />
 
           {data.onTreatment ? <ReminderCard reminder={data.reminder} /> : null}
-
-          {data.medications.length ? (
-            <div className={card}>
-              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Current medication</p>
-              <ul className="mt-3 space-y-2">
-                {data.medications.map((m) => (
-                  <li key={m.id} className="text-sm"><span className="font-medium text-gray-900">{m.drug}</span> <span className="text-gray-500">{m.dose}, {m.freq.toLowerCase()}</span></li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div className={card}>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">My documents</p>
-            {data.files.length ? (
-              <ul className="mt-3 space-y-2">
-                {data.files.map((f) => (
-                  <li key={f.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate text-gray-800">{FILE_TYPES.find(([k]) => k === f.type)?.[1]}</span>
-                    <button type="button" className="text-xs font-semibold text-teal-700 hover:underline"
-                      onClick={() => apiDownload(`/api/patient-portal/files/${f.id}`, f.name, { open: true }).catch((err) => setError(err.message))}>Open</button>
-                  </li>
-                ))}
-              </ul>
-            ) : <p className="mt-3 text-sm text-gray-500">Nothing yet.</p>}
-            <form onSubmit={sendFile} className="mt-4 space-y-2 border-t border-gray-100 pt-4">
-              <label htmlFor="up-type" className="text-xs text-gray-600">Share a document with your care team</label>
-              <select id="up-type" className={input} value={upload.type} onChange={(e) => setUpload({ ...upload, type: e.target.value })}>
-                {FILE_TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-              </select>
-              <input type="file" accept="application/pdf,image/jpeg,image/png" className="block w-full text-xs" onChange={(e) => setUpload({ ...upload, file: e.target.files?.[0] || null })} />
-              <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl border border-teal-600 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50"><FileUp className="h-3.5 w-3.5" />Upload</button>
-              <PrivacyNote facility={patient.facility} compact className="pt-1" />
-            </form>
-          </div>
         </div>
       </div>
 
       {data.onTreatment ? (
-        <div className={card}>
-          <h2 className="mb-4 text-lg font-bold text-gray-900">Treatment history calendar</h2>
-          <AdherenceCalendar treatmentStart={patient.treatment_start} doseLogs={doseLogs} />
-        </div>
+        <AdherenceCalendar treatmentStart={patient.treatment_start} doseLogs={doseLogs} subtitle="Your treatment history" />
       ) : null}
 
       {data.onTreatment ? (
