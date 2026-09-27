@@ -11,6 +11,7 @@ import {
   uploadMyFileApi,
 } from '../api/portal.js'
 import AdherenceCalendar from '../components/patients/AdherenceCalendar.jsx'
+import PrivacyNote from '../components/patients/PrivacyNote.jsx'
 import ReminderCard from '../components/patients/ReminderCard.jsx'
 import StatsCard from '../components/dashboard/StatsCard.jsx'
 import { useAuth } from '../context/useAuth.js'
@@ -65,6 +66,7 @@ function LinkRecord({ onLinked }) {
       </form>
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       <p className="mt-4 text-xs text-gray-500">No code? Ask at your clinic&apos;s reception; they can read it from your record.</p>
+      <PrivacyNote className="mt-6" />
     </div>
   )
 }
@@ -377,6 +379,7 @@ export default function PatientPortal() {
               </select>
               <input type="file" accept="application/pdf,image/jpeg,image/png" className="block w-full text-xs" onChange={(e) => setUpload({ ...upload, file: e.target.files?.[0] || null })} />
               <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl border border-teal-600 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50"><FileUp className="h-3.5 w-3.5" />Upload</button>
+              <PrivacyNote facility={patient.facility} compact className="pt-1" />
             </form>
           </div>
         </div>
