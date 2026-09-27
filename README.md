@@ -29,15 +29,17 @@ Clinvia is a hospital management system with a TB programme built in. Every hosp
 ### 👥 Who sees what
 Staff accounts are created in-house by the hospital's administrator; there's no public staff sign-up. The email domain decides which hospital someone signs in to.
 
+From v2, Clinvia is built around three actors: the **patient**, the **doctor** and the **TB representative** (the v1 network administrator, still the `network_admin` role in code). The other roles keep working but aren't where new work goes. See [docs/ACTORS.md](docs/ACTORS.md).
+
 | Role | Sees |
 |---|---|
-| Network administrator | Every hospital, one at a time or combined; can search people across the network and suspend a hospital |
+| **TB representative** (v2 actor) | Every hospital, one at a time or combined; can search people across the network and suspend a hospital |
 | Hospital administrator | Everything in their hospital; manages staff, wards and hospital settings |
 | Executive (e.g. CEO) | Their hospital's totals, trends and reports — not individual patient records |
-| Doctor / clinician | Full clinical records in their hospital; doctors can switch the dashboard to their own patients and schedule |
+| **Doctor** (v2 actor) / clinician | Full clinical records in their hospital; doctors can switch the dashboard to their own patients and schedule |
 | Nurse | Records, the dose log, the queue and discharges |
 | Receptionist | Registration, bookings and the queue; personal details only, no clinical data |
-| Patient | Their own record in the patient portal |
+| **Patient** (v2 actor) | Their own record in the patient portal |
 
 Any hospital can register itself from the welcome page and starts with empty records.
 
@@ -146,7 +148,7 @@ npm run dev       # Starts Vite dev server on http://localhost:5173
 ```
 
 #### 3. Seeded hospitals
-`flask seed-network` loads five hospitals (Kenyatta, Kiambu, Nakuru, Machakos, Thika), each with its own staff, wards, patients, appointments and walk-ins. Staff sign in at `<hospital>.clinvia.health` (e.g. `amina.hassan@knh.clinvia.health`); the network administrator at `clinvia.health`. Passwords come from `SEED_PASSWORD_*` in `backend/.env` and are never committed.
+`flask seed-network` loads five hospitals (Kenyatta, Kiambu, Nakuru, Machakos, Thika), each with its own staff, wards, patients, appointments and walk-ins. Staff sign in at `<hospital>.clinvia.health` (e.g. `amina.hassan@knh.clinvia.health`); the TB representative at `clinvia.health`. Passwords come from `SEED_PASSWORD_*` in `backend/.env` and are never committed.
 
 Re-running it resets only those five hospitals, so hospitals registered in the app keep their data. Dates are relative to the day it runs; re-run it before a presentation so "today" looks current. Take a `pg_dump` before running it against a shared database.
 

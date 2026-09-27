@@ -1,7 +1,16 @@
+// The three actors Clinvia v2 is built for (see docs/ACTORS.md), mapped to their role
+// names. The TB representative keeps its v1 role name, `network_admin`. Mirrors ACTORS in
+// backend/app/auth.py.
+export const ACTORS = {
+  patient: 'patient',
+  doctor: 'doctor',
+  tbRepresentative: 'network_admin',
+}
+
 export const STAFF_ROLES = ['network_admin', 'admin', 'executive', 'doctor', 'clinician', 'nurse', 'receptionist']
 
 const LABELS = {
-  network_admin: 'Network administrator',
+  network_admin: 'TB representative',
   admin: 'Administrator',
   executive: 'Executive',
   doctor: 'Doctor',
