@@ -11,7 +11,7 @@ PATIENT_DOMAIN = f"patient.{BASE_DOMAIN}"
 NETWORK_ADMIN = {
     "local": "admin",
     "name": "Evelyn Odhiambo",
-    "specialty": "Network administration",
+    "specialty": "TB programme",
 }
 
 # Accounts that existed before tenancy are carried over rather than duplicated.

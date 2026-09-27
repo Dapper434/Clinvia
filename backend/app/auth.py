@@ -19,6 +19,15 @@ from .extensions import db
 STAFF_ROLES = {"admin", "executive", "doctor", "clinician", "nurse", "receptionist"}
 ALL_STAFF = STAFF_ROLES | {"network_admin"}
 
+# The three actors Clinvia v2 is built for (see docs/ACTORS.md). New features target
+# these first; the other roles keep working with their v1 permissions. The TB
+# representative is stored under its v1 role name, `network_admin`.
+ACTORS = {
+    "patient": "patient",
+    "doctor": "doctor",
+    "tb_representative": "network_admin",
+}
+
 # Capability -> roles allowed. The frontend mirrors this to hide what a role can't use,
 # but these checks are the ones that count.
 PERMISSIONS = {

@@ -15,7 +15,8 @@ def _iso(value):
 
 
 # Roles, grouped by what they can reach. `network_admin` has no hospital and sees all of them;
-# every other staff role belongs to exactly one hospital.
+# every other staff role belongs to exactly one hospital. In v2 `network_admin` is the
+# "TB representative" actor (see ACTORS in auth.py and docs/ACTORS.md).
 STAFF_ROLES = ("admin", "executive", "doctor", "clinician", "nurse", "receptionist")
 ALL_ROLES = ("network_admin",) + STAFF_ROLES + ("patient",)
 _ROLE_CHECK = "role IN (" + ", ".join(f"'{r}'" for r in ALL_ROLES) + ")"
