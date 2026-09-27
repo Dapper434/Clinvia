@@ -8,7 +8,7 @@ import { Left, Plus, Right } from '../../components/ui/icons.jsx'
 import Page from '../../components/ui/Page.jsx'
 import { useApi } from '../../components/ui/useApi.js'
 import { useAuth } from '../../context/useAuth.js'
-import { addDays, dow, dt, fmt, fmtY, isWeekend, monday, plural, shortHospital } from '../../utils/format.js'
+import { addDays, dow, dt, fmt, fmtY, isWeekend, monday, plural } from '../../utils/format.js'
 
 export function QueueTabs({ active, waiting }) {
   const on = { border: 0, borderRadius: 0, background: 'var(--ink)', color: '#fff' }
@@ -103,7 +103,7 @@ export default function Appointments() {
         <div className="panel-h"><h3>{dow(day)} {fmtY(day)}</h3><span>Clinic runs 08:00 to 16:00</span></div>
         {data.rows.length ? (
           <div className="tbl-wrap"><table>
-            <thead><tr><th>Time</th><th>Patient</th><th>Reason</th><th>Doctor</th>{scope === 'all' && role === 'network_admin' ? <th>Hospital</th> : null}<th>Booked by</th><th>Status</th><th /></tr></thead>
+            <thead><tr><th>Time</th><th>Patient</th><th>Reason</th><th>Doctor</th><th>Booked by</th><th>Status</th><th /></tr></thead>
             <tbody>
               {data.rows.map((a) => (
                 <tr key={a.id} className={a.status === 'completed' ? 'done' : a === firstNext ? 'now' : ''}>
@@ -111,7 +111,6 @@ export default function Appointments() {
                   <td><Link className="link" to={`/patients/${a.patient.code}`}>{a.patient.name}</Link><span className="sub">{a.patient.code}</span></td>
                   <td>{a.reason}</td>
                   <td>{a.doctor}</td>
-                  {scope === 'all' && role === 'network_admin' ? <td>{shortHospital(a.hospital)}</td> : null}
                   <td><BookedBy via={a.via} /></td>
                   <td><ApptStatus status={a.status} next={a === firstNext} /></td>
                   <td>

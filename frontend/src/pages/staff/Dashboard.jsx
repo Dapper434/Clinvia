@@ -178,12 +178,26 @@ export default function Dashboard() {
           note={s.beds ? `${Math.round((100 * s.bedsOccupied) / s.beds)}% across ${plural(s.wards, 'ward')}` : 'No wards set up yet'} />
         {role !== 'receptionist' ? <Stat label="On TB treatment" value={s.activeTb} note={`${s.mdr} drug-resistant (MDR)`} /> : null}
         <Stat label="Doctors on duty" value={s.doctorsOnDuty}
-          note={s.doctorsOnLeave.length ? `${s.doctorsOnLeave.map((n) => `Dr. ${surname(n)}`).join(', ')} on leave` : 'Nobody on leave'} />
+          note={s.doctorsOnLeave.length ? `${s.doctorsOnLeave.map((n) => `Dr. ${surname(n)}`).join(', ')} on leave`
+            : s.doctorsOnLeaveCount ? `${plural(s.doctorsOnLeaveCount, 'doctor')} on leave` : 'Nobody on leave'} />
       </Stats>
 
       <div className="grid g-2-1">
         <section className="panel">
-          {d.scheduleByDoctor ? (
+          {d.scheduleByHospital ? (
+            <>
+              <div className="panel-h"><h3>Today&apos;s clinics</h3><span>{plural(s.appointmentsToday, 'appointment')} across {plural(d.scheduleByHospital.length, 'hospital')}</span></div>
+              {d.scheduleByHospital.length ? (
+                <div className="tbl-wrap"><table>
+                  <thead><tr><th>Hospital</th><th className="num">Booked</th><th className="num">Seen</th><th className="num">Seen so far</th></tr></thead>
+                  <tbody>{d.scheduleByHospital.map((r) => (
+                    <tr key={r.hospital}><td>{r.hospital}</td><td className="num">{r.booked}</td><td className="num">{r.seen}</td>
+                      <td className="num">{r.booked ? `${Math.round((100 * r.seen) / r.booked)}%` : '—'}</td></tr>
+                  ))}</tbody>
+                </table></div>
+              ) : <Empty>No appointments booked for today.</Empty>}
+            </>
+          ) : d.scheduleByDoctor ? (
             <>
               <div className="panel-h"><h3>Today&apos;s clinics</h3><span>{plural(s.appointmentsToday, 'appointment')} across {plural(d.scheduleByDoctor.length, 'doctor')}</span></div>
               {d.scheduleByDoctor.length ? (

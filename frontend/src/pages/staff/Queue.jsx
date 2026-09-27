@@ -12,7 +12,7 @@ import { QueueTabs } from './Appointments.jsx'
 const Priority = ({ v }) => <span className={`pill ${v === 'urgent' ? 'p-red' : v === 'moderate' ? 'p-amber' : 'p-done'}`}>{cap(v)}</span>
 
 export default function Queue() {
-  const { can, scope, role } = useAuth()
+  const { can, scope } = useAuth()
   const { openDrawer, version, toast, bump } = useShell()
   const { data: q, error, reload } = useApi(queueApi, [scope, version])
   const actions = can('queue.add') ? <button type="button" className="btn primary" onClick={() => openDrawer('walkin')}><Plus />Add walk-in</button> : null
@@ -21,7 +21,6 @@ export default function Queue() {
     return <Page title="Appointments" sub="Walk-in queue" actions={actions}>{error ? <ErrorNote error={error} onRetry={reload} /> : <Loading />}</Page>
   }
 
-  const network = role === 'network_admin' && scope === 'all'
   const act = async (fn, msg) => {
     try {
       const r = await fn()
@@ -34,7 +33,7 @@ export default function Queue() {
   const row = (v, action) => (
     <tr key={v.id}>
       <td>{v.arrived}</td>
-      <td><Link className="link" to={`/patients/${v.patient.code}`}>{v.patient.name}</Link><span className="sub">{v.patient.code}, {v.patient.age}, {v.patient.gender}{network ? `, ${v.hospital}` : ''}</span></td>
+      <td><Link className="link" to={`/patients/${v.patient.code}`}>{v.patient.name}</Link><span className="sub">{v.patient.code}, {v.patient.age}, {v.patient.gender}</span></td>
       <td><Priority v={v.priority} /></td>
       <td>{v.doctor || <span className="muted">Not yet</span>}</td>
       <td className="num">{v.waitMin} min</td>
