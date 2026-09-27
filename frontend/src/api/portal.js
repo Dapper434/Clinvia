@@ -18,3 +18,4 @@ export function uploadMyFileApi(file, type) {
 
 export const askAssistantApi = (messages) => apiClient('/api/patient-portal/assistant', { method: 'POST', body: { messages } })
 export const getFacilitiesApi = () => apiClient('/api/facilities')
+export const setReminderStyleApi = (style) => apiClient('/api/patient-portal/reminder-style', { method: 'PATCH', body: { style } })

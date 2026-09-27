@@ -4,11 +4,12 @@ from flask import Blueprint, g, jsonify, request
 
 from .. import assistant
 from ..auth import authenticate_token, require_patient
-from ..clinical import adherence, clinic_today, lab_label, local, miss_streak, tz
+from ..clinical import adherence, best_taken_streak, clinic_today, lab_label, local, miss_streak, taken_streak, tz
 from ..extensions import db
 from ..lookups import body, doctor_brief
 from ..models import Appointment, DoseLog, LabResult, Medication, Patient, PatientFile, User
-from ..reminders import effective_dose_time, push_enabled
+from ..reminder_messages import STYLES, normalise_style
+from ..reminders import build_reminder, effective_dose_time, push_enabled
 from ..utils import parse_date
 from .appointments import SLOTS, free_slots
 from .patients import _store_upload, file_response
@@ -18,6 +19,18 @@ bp = Blueprint("portal", __name__, url_prefix="/api/patient-portal")
 
 def _me():
     return Patient.query.filter_by(user_id=g.current_user.id).first()
+
+
+def _reminder_payload(patient, today, streak):
+    preview = build_reminder(patient, today, streak)
+    return {
+        "doseTime": effective_dose_time(patient).strftime("%H:%M"),
+        "setByDoctor": patient.dose_time is not None,
+        "pushConfigured": push_enabled(),
+        "style": normalise_style(patient.reminder_style),
+        "styles": [{"id": k, "label": v} for k, v in STYLES.items()],
+        "preview": {"title": preview["title"], "body": preview["body"]},
+    }
 
 
 @bp.get("/my-treatment")
@@ -59,11 +72,8 @@ def get_my_treatment():
         "doctors": [doctor_brief(d) for d in User.query.filter_by(
             facility_id=patient.facility_id, role="doctor", duty_status="on_duty", is_active=True
         ).order_by(User.staff_code)] if patient.facility_id else [],
-        "reminder": {
-            "doseTime": effective_dose_time(patient).strftime("%H:%M"),
-            "setByDoctor": patient.dose_time is not None,
-            "pushConfigured": push_enabled(),
-        },
+        "reminder": _reminder_payload(patient, today, taken_streak(log, today) if e else 0),
+        "checkInStreak": {"current": taken_streak(log, today), "best": best_taken_streak(log)} if e else None,
         "today": today.isoformat(),
     })
 
@@ -234,3 +244,18 @@ def ask_assistant():
     if _over_limit(g.current_user.id, datetime.now()):
         return jsonify({"error": "You've asked a lot of questions. Please wait a few minutes, or contact your clinic."}), 429
     return jsonify(assistant.answer(_treatment_facts(patient), body().get("messages")))
+
+
+@bp.patch("/reminder-style")
+@authenticate_token
+@require_patient
+def set_reminder_style():
+    patient = _me()
+    if not patient:
+        return jsonify({"error": "Connect your clinic record first."}), 400
+    style = body().get("style")
+    if style not in STYLES:
+        return jsonify({"error": "Pick one of the reminder styles."}), 400
+    patient.reminder_style = style
+    db.session.commit()
+    return jsonify(_reminder_payload(patient, clinic_today(), 0))
