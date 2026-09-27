@@ -190,6 +190,8 @@ class Patient(db.Model):
     # Local wall-clock time (APP_TIMEZONE) the doctor wants the daily dose taken; null = default.
     dose_time = db.Column(db.Time)
     last_reminder_sent_on = db.Column(db.Date)
+    # Voice of the patient's reminders (see reminder_messages.STYLES); null = the default.
+    reminder_style = db.Column(db.Text)
 
     facility = db.relationship("Facility")
     assigned_doctor = db.relationship("User", foreign_keys=[assigned_doctor_id])

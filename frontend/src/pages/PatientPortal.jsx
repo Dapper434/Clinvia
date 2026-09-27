@@ -28,6 +28,7 @@ import {
   ChevronRight,
   FileUp,
   HeartPulse,
+  Flame,
   Mail,
   Pill,
   Stethoscope,
@@ -37,6 +38,21 @@ const FILE_TYPES = [['referral', 'Referral letter'], ['lab_report', 'Lab report'
 const card = 'rounded-3xl border border-gray-200 bg-white p-6 shadow-sm'
 const input = 'w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500'
 const niceDate = (s) => new Date(`${s.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+
+function StreakBadge({ streak, loggedToday }) {
+  if (!streak) return null
+  const { current, best } = streak
+  const label = current ? `${current}-day streak` : 'Start a streak today'
+  return (
+    <div className="ml-auto flex flex-shrink-0 items-center gap-2 rounded-2xl bg-amber-50 px-3 py-1.5 text-amber-800" title={best ? `Best streak: ${best} days` : undefined}>
+      <Flame className={`h-4 w-4 ${current ? 'text-amber-500' : 'text-amber-300'}`} aria-hidden="true" />
+      <div className="leading-tight">
+        <p className="text-sm font-bold">{label}</p>
+        <p className="text-[11px] text-amber-700/80">{loggedToday ? 'Done for today' : current ? `Check in to make it ${current + 1}` : best ? `Your best: ${best} days` : 'One check-in at a time'}</p>
+      </div>
+    </div>
+  )
+}
 
 function LinkRecord({ onLinked }) {
   const [code, setCode] = useState('')
@@ -194,7 +210,8 @@ export default function PatientPortal() {
     setError('')
     try {
       await logMyDoseApi({ date: today, taken: true })
-      await done('Well done! Your dose is logged and your care team can see it.')
+      const next = (data.checkInStreak?.current ?? 0) + 1
+      await done(next > 1 ? `Well done! That’s ${next} days in a row. Your care team can see it.` : 'Well done! Your dose is logged and your care team can see it.')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -260,12 +277,13 @@ export default function PatientPortal() {
         <div className="space-y-6 lg:col-span-2">
           {data.onTreatment ? (
             <div className="rounded-3xl border-2 border-teal-500/30 bg-white p-6 shadow-lg shadow-teal-500/5">
-              <div className="mb-2 flex items-center gap-3">
+              <div className="mb-2 flex flex-wrap items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600"><Pill className="h-5 w-5" /></div>
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">Daily medication check-in</h2>
                   <p className="text-xs text-gray-500">Today: {niceDate(today)}</p>
                 </div>
+                <StreakBadge streak={data.checkInStreak} loggedToday={Boolean(todayLog?.taken)} />
               </div>
               {todayLog ? (
                 <p className="mt-4 text-sm text-gray-700">
@@ -376,7 +394,7 @@ export default function PatientPortal() {
       ) : null}
 
       {data.onTreatment ? (
-        <DosePopup doseTime={data.reminder?.doseTime} today={today} isLogged={Boolean(todayLog)} onCheckIn={checkIn} />
+        <DosePopup doseTime={data.reminder?.doseTime} today={today} isLogged={Boolean(todayLog)} onCheckIn={checkIn} message={data.reminder?.preview} />
       ) : null}
       <AssistantChat />
     </div>
