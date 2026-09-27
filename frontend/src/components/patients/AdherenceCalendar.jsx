@@ -67,7 +67,7 @@ export default function AdherenceCalendar({ treatmentStart, doseLogs, subtitle }
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
+    <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Adherence calendar</h3>
