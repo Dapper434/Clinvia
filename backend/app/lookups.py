@@ -23,10 +23,7 @@ def patient_or_404(code):
 
 def staff_or_404(code):
     code = (code or "").strip().upper()
-    q = User.query.filter(User.staff_code == code)
-    if g.current_user.role != "network_admin":
-        q = q.filter(User.facility_id == g.current_user.facility_id)
-    u = q.first()
+    u = User.query.filter(User.staff_code == code, User.facility_id == g.current_user.facility_id).first()
     if not u:
         abort(404, description=f"There is no staff member with the code {code} here.")
     return u

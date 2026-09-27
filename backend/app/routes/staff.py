@@ -1,5 +1,5 @@
 from flask import Blueprint, abort, g, jsonify, request
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 
 from ..auth import (
     STAFF_ROLES,
@@ -8,6 +8,7 @@ from ..auth import (
     hash_password,
     password_problem,
     require,
+    require_staff,
     scope_ids,
     single_scope,
 )
@@ -88,11 +89,20 @@ def next_staff_code():
     return jsonify({"code": "S" + str(n).zfill(max(4, len(str(n))))})
 
 
+def _staff_or_me(code):
+    """`me` is always allowed; anyone else needs the staff directory (hospital staff only)."""
+    if code == "me":
+        return g.current_user
+    if not can(g.current_user.role, "staff.view"):
+        abort(403, description="Your role doesn't have access to this.")
+    return staff_or_404(code)
+
+
 @bp.get("/staff/<code>")
 @authenticate_token
-@require("staff.view")
+@require_staff
 def profile(code):
-    u = g.current_user if code == "me" else staff_or_404(code)
+    u = _staff_or_me(code)
     today = clinic_today()
     data = u.to_staff_dict()
     patients = Patient.query.filter_by(assigned_doctor_id=u.id).order_by(Patient.patient_code).all()
@@ -124,7 +134,7 @@ def _can_manage(u):
     me = g.current_user
     if not can(me.role, "staff.manage"):
         return False
-    return me.role == "network_admin" or (u.facility_id == me.facility_id)
+    return u.facility_id == me.facility_id
 
 
 @bp.post("/staff")
@@ -167,10 +177,10 @@ def create_staff():
 
 @bp.patch("/staff/<code>")
 @authenticate_token
-@require("staff.view")
+@require_staff
 def update_staff(code):
     me = g.current_user
-    u = me if code == "me" else staff_or_404(code)
+    u = _staff_or_me(code)
     manage = _can_manage(u)
     if not manage and u.id != me.id:
         return jsonify({"error": "Only your hospital's administrator can change other people's accounts."}), 403
@@ -229,39 +239,3 @@ def update_staff(code):
         profile_row.full_name, profile_row.role = u.full_name, u.role
     db.session.commit()
     return jsonify(u.to_staff_dict())
-
-
-@bp.get("/directory")
-@authenticate_token
-@require("network.view")
-def directory():
-    """Search people across every hospital: staff by name, code, email or role; patients by
-    name, code or phone."""
-    term = (request.args.get("q") or "").strip().lower()
-    kind = request.args.get("type") or "all"
-    role = request.args.get("role")
-    scope = scope_ids()
-    facilities = {f.id: f.name for f in Facility.query.all()}
-    out = {"staff": [], "patients": []}
-    like = f"%{term}%"
-    if kind in ("all", "staff"):
-        q = User.query.filter(or_(User.facility_id.in_(scope), User.role == "network_admin"), User.role != "patient")
-        if role:
-            q = q.filter(User.role == role)
-        if term:
-            q = q.filter(or_(func.lower(User.full_name).like(like), func.lower(User.email).like(like),
-                             func.lower(User.staff_code).like(like), func.lower(User.specialty).like(like)))
-        out["staff"] = [u.to_staff_dict() for u in q.order_by(User.full_name).limit(50).all()]
-    if kind in ("all", "patients") and not role:
-        q = Patient.query.filter(Patient.facility_id.in_(scope))
-        if term:
-            q = q.filter(or_(func.lower(Patient.name).like(like), func.lower(Patient.patient_code).like(like),
-                             Patient.phone.like(like)))
-        rows = q.order_by(Patient.name).limit(50).all()
-        eps = {e.patient_id: e.status for e in TbEpisode.query.filter(TbEpisode.patient_id.in_([p.id for p in rows]))}
-        out["patients"] = [
-            {**patient_brief(p), "hospital": facilities.get(p.facility_id), "hospitalSlug": p.facility.slug if p.facility else None,
-             "tb": eps.get(p.id), "doctor": p.assigned_doctor.full_name if p.assigned_doctor else None}
-            for p in rows
-        ]
-    return jsonify(out)
