@@ -25,8 +25,10 @@ from ..clinical import (
     last_check_in,
     local,
     miss_streak,
+    next_pickup,
     open_admissions,
 )
+from ..escalations import escalations_for
 from ..extensions import db
 from ..lookups import body, doctor_brief, names_by_id, patient_brief, patient_or_404
 from ..prescribing import (
@@ -52,6 +54,7 @@ from ..models import (
     Facility,
     LabResult,
     Medication,
+    MedicationPickup,
     Patient,
     PatientFile,
     Profile,
@@ -398,6 +401,8 @@ def _record(p):
                 "regimenDays": REGIMENS[e.regimen]["total_days"] or REGIMEN_DAYS,
             }
             out["regimenPlan"] = _plan_for(p, e)
+            pickups = MedicationPickup.query.filter_by(episode_id=e.id).order_by(MedicationPickup.picked_up_on.desc()).all()
+            out["pickup"] = {"next": next_pickup(e, pickups, today), "history": [x.to_dict() for x in pickups[:6]]}
         meds = Medication.query.filter_by(patient_id=p.id, active=True).order_by(Medication.drug_name).all()
         out["medications"] = [m.to_dict() for m in meds]
         labs = LabResult.query.filter_by(patient_id=p.id).order_by(LabResult.collected_at.desc(), LabResult.created_at.desc()).all()
@@ -405,6 +410,8 @@ def _record(p):
         files = PatientFile.query.filter_by(patient_id=p.id).order_by(PatientFile.uploaded_at.desc()).all()
         out["files"] = [f.to_dict() for f in files]
         out["contacts"] = [c.to_dict() for c in Contact.query.filter_by(source_patient_id=p.id).order_by(Contact.name).all()]
+        if can(role, "escalations.view"):
+            out["escalations"] = escalations_for(scope_ids(), "all", patient_id=p.id, limit=10)
         out["alerts"] = {
             "notConverted": any((l.notes or "").startswith("Not converted") for l in labs) and active,
             "pendingLabs": [{"test": lab_label(l.test_type), "collected": l.collected_at.isoformat()}
@@ -602,6 +609,32 @@ def prescribe(code):
     db.session.add(m)
     db.session.commit()
     return jsonify(m.to_dict()), 201
+
+
+@bp.post("/patients/<code>/pickups")
+@authenticate_token
+@require("meds.write")
+def record_pickup(code):
+    """The patient collected their TB drugs; the next pickup is due when this supply runs out."""
+    p = patient_or_404(code)
+    e = p.active_episode
+    if not e:
+        return jsonify({"error": "This patient isn't on TB treatment."}), 400
+    data = body()
+    on = parse_date(data.get("on")) or clinic_today()
+    if on > clinic_today() or on < e.treatment_start:
+        return jsonify({"error": "The pickup date must be between the treatment start and today."}), 400
+    try:
+        days = int(data.get("days"))
+    except (TypeError, ValueError):
+        days = 0
+    if not 1 <= days <= 90:
+        return jsonify({"error": "Enter how many days of medicine were handed over (1 to 90)."}), 400
+    db.session.add(MedicationPickup(patient_id=p.id, episode_id=e.id, picked_up_on=on, days_supplied=days,
+                                    recorded_by=g.current_user.id))
+    db.session.commit()
+    pickups = MedicationPickup.query.filter_by(episode_id=e.id).order_by(MedicationPickup.picked_up_on.desc()).all()
+    return jsonify({"next": next_pickup(e, pickups), "history": [x.to_dict() for x in pickups[:6]]}), 201
 
 
 @bp.get("/prescribing/regimen")

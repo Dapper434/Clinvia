@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { apiDownload } from '../../api/client.js'
-import { newLinkCodeApi, patientRecordApi, screenContactApi, stopMedicationApi } from '../../api/patients.js'
+import { newLinkCodeApi, patientRecordApi, recordPickupApi, screenContactApi, stopMedicationApi } from '../../api/patients.js'
+import EscalationList from '../../components/escalations/EscalationList.jsx'
 import { useShell } from '../../components/shell/shellContext.js'
 import { Empty, ErrorNote, Loading, PatientPill } from '../../components/ui/bits.jsx'
 import { Back, Plus } from '../../components/ui/icons.jsx'
@@ -59,6 +61,56 @@ function DoseCalendar({ r, first }) {
         <div><b>{d.streak ? plural(d.streak, 'day') : 'None'}</b>current missed streak</div>
       </div>
     </section>
+  )
+}
+
+const SUPPLY_DAYS = [7, 14, 28, 56]
+
+/** When the patient should next collect their TB drugs, and recording a pickup. */
+function Pickup({ code, pickup, today, canRecord, onSaved }) {
+  const [form, setForm] = useState(null)
+  const [error, setError] = useState('')
+  const next = pickup?.next
+  const last = pickup?.history?.[0]
+  const save = async (ev) => {
+    ev.preventDefault()
+    setError('')
+    try {
+      await recordPickupApi(code, form)
+      setForm(null)
+      onSaved()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+  return (
+    <div className="qnote">
+      <p>
+        {next ? (
+          <>
+            <b className={next.overdue ? 'warn' : undefined}>
+              Next pickup {next.overdue ? 'was due' : ''} {fmt(next.due)}
+              {next.overdue ? '' : next.daysLeft === 0 ? ', today' : `, in ${plural(next.daysLeft, 'day')}`}.
+            </b>{' '}
+            {next.estimated ? 'Estimated from the treatment phase; no pickup recorded yet.' : `Last collected ${fmt(last.on)} (${last.days} days).`}
+          </>
+        ) : 'No more pickups due on this regimen.'}
+        {canRecord && !form ? <> <button type="button" className="link" onClick={() => setForm({ on: today, days: 28 })}>Record a pickup</button></> : null}
+      </p>
+      {form ? (
+        <form className="esc-ack" onSubmit={save} style={{ marginTop: 8 }}>
+          <label className="sr-only" htmlFor="pickup-on">Collected on</label>
+          <input id="pickup-on" type="date" max={today} value={form.on} onChange={(e) => setForm({ ...form, on: e.target.value })} />
+          <label className="sr-only" htmlFor="pickup-days">Days supplied</label>
+          <select id="pickup-days" value={form.days} onChange={(e) => setForm({ ...form, days: Number(e.target.value) })}>
+            {SUPPLY_DAYS.map((n) => <option key={n} value={n}>{n} days of medicine</option>)}
+          </select>
+          <button type="submit" className="btn sm primary">Save</button>
+          <button type="button" className="btn sm" onClick={() => setForm(null)}>Cancel</button>
+          {error ? <small className="warn">{error}</small> : null}
+        </form>
+      ) : null}
+    </div>
   )
 }
 
@@ -321,6 +373,16 @@ export default function PatientRecord() {
         </div>
       ) : null}
 
+      {r.escalations?.length ? (
+        <section className="panel" aria-labelledby="esc-h">
+          <div className="panel-h">
+            <h3 id="esc-h">Reported to Rafiki</h3>
+            <span>What {first} told the patient companion that a doctor should see.</span>
+          </div>
+          <EscalationList rows={r.escalations} onHandled={reload} showPatient={false} />
+        </section>
+      ) : null}
+
       {r.clinical ? (
         <>
           <div className={`grid ${calendar ? 'g-2-1' : 'g-1-1'}`}>
@@ -353,6 +415,9 @@ export default function PatientRecord() {
                   No active prescriptions.
                 </Empty>
               )}
+              {active && r.pickup ? (
+                <Pickup code={p.code} pickup={r.pickup} today={today} canRecord={can('meds.write')} onSaved={() => { toast('Pickup recorded'); bump() }} />
+              ) : null}
               {can('tb.manage') ? (
                 <p className="qnote">
                   {active ? (

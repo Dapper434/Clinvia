@@ -48,7 +48,10 @@ class Config:
     # First-line TB drugs are taken once daily on an empty stomach, i.e. before breakfast.
     DEFAULT_DOSE_TIME = os.environ.get("DEFAULT_DOSE_TIME", "07:00")
 
-    # Patient "Talk to AI" companion: any OpenAI-compatible chat API. Without a key it answers from safe rules.
-    AI_API_KEY = os.environ.get("AI_API_KEY", "")
-    AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.groq.com/openai/v1")
-    AI_MODEL = os.environ.get("AI_MODEL", "llama-3.3-70b-versatile")
+    # Patient companion (Rafiki): any OpenAI-compatible chat API with tool calling, NVIDIA NIM by default.
+    # Without a key it answers from safe rules (and still escalates danger signs).
+    AI_API_KEY = os.environ.get("AI_API_KEY") or os.environ.get("NVIDIA_API_KEY", "")
+    AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://integrate.api.nvidia.com/v1")
+    AI_MODEL = os.environ.get("AI_MODEL", "nvidia/nemotron-3-super-120b-a12b")
+    # Nemotron reasoning: off (default, fastest), low or on.
+    AI_THINKING = os.environ.get("AI_THINKING", "off").lower()

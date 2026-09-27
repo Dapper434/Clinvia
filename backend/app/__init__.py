@@ -35,6 +35,7 @@ def create_app():
         auth_routes,
         dashboard,
         doses,
+        escalations,
         facilities,
         hospitals,
         patients,
@@ -46,7 +47,7 @@ def create_app():
     )
 
     for module in (auth_routes, hospitals, dashboard, patients, appointments, admissions, doses,
-                   reports, staff, facilities, portal, push, reminders):
+                   reports, staff, facilities, portal, push, reminders, escalations):
         app.register_blueprint(module.bp)
 
     from .auth import ScopeError

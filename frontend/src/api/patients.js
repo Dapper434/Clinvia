@@ -20,6 +20,7 @@ export const prescribeRegimenApi = (code, lines) =>
 /** What a classification would imply, before anything is saved. */
 export const regimenPreviewApi = (params) => apiClient(`/api/prescribing/regimen${q(params)}`)
 export const stopMedicationApi = (id) => apiClient(`/api/medications/${id}`, { method: 'PATCH', body: { active: false } })
+export const recordPickupApi = (code, body) => apiClient(`/api/patients/${code}/pickups`, { method: 'POST', body })
 export const addContactApi = (code, body) => apiClient(`/api/patients/${code}/contacts`, { method: 'POST', body })
 export const screenContactApi = (id, result) =>
   apiClient(`/api/contacts/${id}`, { method: 'PATCH', body: { screen_result: result } })
