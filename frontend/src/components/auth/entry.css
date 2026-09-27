@@ -1,0 +1,85 @@
+/* Landing + sign-in frame. Inherits the Clinvia tokens from clinvia.css; the
+   dark field reuses the dashboard's attention-panel colours. */
+.cv.entry{
+  --field-line:rgba(255,255,255,.1);
+  --cell-t:#3FB2A2; --cell-p:#93A2EA; --cell-m:#F07A62; --cell-n:rgba(255,255,255,.09);
+  --band-good:#7FD6C8; --band-fair:#F3C173; --band-poor:#F7A08E;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);min-height:100vh}
+.cv.entry .entry-field{order:-1}
+.cv.entry ::selection{background:var(--teal-wash);color:var(--teal-2)}
+
+/* Brand row: the mark is the origin of the signal line. */
+.entry-top{display:flex;align-items:center;gap:16px;min-width:0}
+.entry-top .brand{flex-shrink:0}
+.entry-signal{flex:1;min-width:48px;max-width:420px}
+@media (max-width:359px){.entry-signal{display:none}}
+
+/* Content column */
+.entry-main{display:flex;flex-direction:column;gap:40px;padding:36px clamp(24px,5vw,72px);background:var(--paper)}
+.entry-main .brand{padding:0}
+.entry-body{margin-block:auto;width:min(440px,100%);display:flex;flex-direction:column}
+.entry-title{font-weight:600;color:var(--ink);text-wrap:balance}
+.entry-title-page{font-size:clamp(2rem,1.3rem + 2.4vw,3.25rem);line-height:1.04;letter-spacing:-.035em}
+.entry-title-form{font-size:clamp(1.6rem,1.3rem + 1vw,2.1rem);line-height:1.1;letter-spacing:-.025em}
+.entry-lead{margin-top:14px;color:var(--ink-2);font-size:15.5px;line-height:1.55;max-width:42ch}
+.entry-body > :is(form,nav){margin-top:32px}
+.entry-foot{color:var(--ink-2);font-size:13px}
+
+/* The buyer's action on the landing page, directly under the entry rows */
+.entry-register{margin-top:18px;font-size:15px;color:var(--ink-2)}
+.entry-register .link{font-weight:600;white-space:nowrap}
+
+/* Entry choices on the landing page */
+.entry-choices{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.entry-choice{display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;padding:16px 4px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink);transition:background-color .2s ease,border-color .2s ease}
+.entry-choice b{transition:color .2s ease}
+.entry-choice b{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.entry-choice small{display:block;color:var(--ink-2);font-size:13px;margin-top:2px}
+.entry-choice > span:last-child{width:32px;height:32px;border-radius:999px;display:grid;place-items:center;color:var(--teal-2);border:1px solid var(--line);transition:transform .25s var(--ease-out),background-color .2s,color .2s,border-color .2s}
+.entry-choice:focus-visible > span:last-child{background:var(--teal);border-color:var(--teal);color:#fff;transform:translateX(5px)}
+.entry-choice.primary b{color:var(--teal-2)}
+@media (hover:hover){
+  .entry-choice:hover{background-color:rgba(227,241,238,.45);border-bottom-color:rgba(14,124,112,.28)}
+  .entry-choice:hover b{color:var(--teal-2)}
+  .entry-choice:hover > span:last-child{background:var(--teal);border-color:var(--teal);color:#fff;transform:translateX(5px)}
+}
+.entry-choice:focus-visible{outline-offset:4px}
+.entry-choice:active > span:last-child{transform:translateX(5px) scale(.9);transition-duration:.1s}
+
+/* The headline's "missed" is highlighted the moment the field flags a streak. */
+.entry-mark{color:inherit;background-color:transparent;background-image:linear-gradient(var(--red-wash),var(--red-wash));background-repeat:no-repeat;background-position:0 78%;background-size:0% 80%;border-radius:3px;padding-inline:.06em;margin-inline:-.06em;transition:background-size .8s cubic-bezier(.34,1.35,.64,1),color .35s ease}
+.cv.entry.is-flagged .entry-mark{background-size:100% 80%;color:var(--red)}
+
+/* Sign-in form in this frame */
+.cv.entry .field input{padding:11px 12px;font-size:15px}
+.cv.entry .field input::placeholder{color:#5E736E}
+.cv.entry .field input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(14,124,112,.16)}
+.cv.entry .btn.primary{padding:11px 18px;font-size:14px;transition:background-color .15s,transform .12s var(--ease-out)}
+.cv.entry .btn.primary:active:not(:disabled){transform:scale(.97)}
+
+/* The dose calendar field */
+.entry-field{background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;padding:48px clamp(24px,4vw,64px);position:relative;overflow:hidden}
+.entry-field::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 100% 0%,rgba(63,178,162,.14),transparent 60%);pointer-events:none}
+
+/* Moving between the landing and sign-in pages: the field holds still, the content swaps. */
+.entry-field{view-transition-name:dose-field}
+.entry-main{view-transition-name:entry-main}
+::view-transition-old(entry-main){animation:vt-out .16s ease-in both}
+::view-transition-new(entry-main){animation:vt-in .34s var(--ease-out,cubic-bezier(.16,1,.3,1)) both}
+@keyframes vt-out{to{opacity:0;transform:translateY(-4px)}}
+@keyframes vt-in{from{opacity:0;transform:translateY(8px);filter:blur(3px)}}
+
+@media (prefers-reduced-motion:reduce){
+  .entry-mark{transition:none}
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+}
+
+/* Narrow screens: content first, the calendar below. */
+@media (max-width:900px){
+  .cv.entry{grid-template-columns:1fr}
+  .cv.entry .entry-field{order:0}
+  .entry-main{gap:32px;padding-block:24px 36px}
+  .entry-body{margin-block:0}
+  .entry-field{padding:32px 20px 36px}
+}
