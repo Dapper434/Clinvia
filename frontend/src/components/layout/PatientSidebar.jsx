@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Pill, User, LogOut, X } from 'lucide-react'
+import { Pill, User, LogOut, ShieldCheck, X } from 'lucide-react'
 import { useAuth } from '../../context/useAuth.js'
 
 const linkClass = ({ isActive }) =>
@@ -45,6 +45,10 @@ export default function PatientSidebar({ open = false, onClose = () => {} }) {
           </NavLink>
         </nav>
         <div className="border-t border-gray-100 p-3">
+          <NavLink to="/privacy" className={linkClass} onClick={onClose}>
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            Your data
+          </NavLink>
           <button
             type="button"
             onClick={() => signOut()}
