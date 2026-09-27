@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { whichHospitalApi } from '../api/auth.js'
-import AuthLayout, { Loader } from '../components/auth/AuthLayout.jsx'
+import { Loader } from '../components/auth/AuthLayout.jsx'
+import EntryLayout from '../components/auth/EntryLayout.jsx'
 import { Right } from '../components/ui/icons.jsx'
 import { useAuth } from '../context/useAuth.js'
 import { homePathForRole } from '../utils/roles.js'
@@ -12,13 +13,13 @@ const COPY = {
     title: 'Staff sign-in',
     lead: 'Use your hospital work email. It decides which hospital you sign in to.',
     placeholder: 'firstname.lastname@yourhospital',
-    footer: <>Staff accounts are created by your hospital&apos;s administrator. <Link className="link" to="/login/patient">Patient sign-in</Link></>,
+    footer: <>Staff accounts are created by your hospital&apos;s administrator. <Link className="link" to="/login/patient" viewTransition>Patient sign-in</Link></>,
   },
   patient: {
     title: 'Patient sign-in',
     lead: 'Check in your doses, see your results and book appointments.',
     placeholder: 'you@example.com',
-    footer: <>New here? <Link className="link" to="/signup/patient">Create a patient account</Link> · <Link className="link" to="/login/hospital">Staff sign-in</Link></>,
+    footer: <>New here? <Link className="link" to="/signup/patient" viewTransition>Create a patient account</Link> · <Link className="link" to="/login/hospital" viewTransition>Staff sign-in</Link></>,
   },
 }
 
@@ -55,7 +56,7 @@ export default function Login({ portal = 'hospital' }) {
 
   const showWhere = portal === 'hospital' && where && /@[^@\s]+\.[^@\s]+$/.test(email)
   return (
-    <AuthLayout title={copy.title} lead={copy.lead} footer={copy.footer}>
+    <EntryLayout size="form" title={copy.title} lead={copy.lead} footer={copy.footer}>
       <form className="fields" style={{ gridTemplateColumns: '1fr' }} onSubmit={submit}>
         <div className="field">
           <label htmlFor="email">Email</label>
@@ -75,6 +76,6 @@ export default function Login({ portal = 'hospital' }) {
           {busy ? 'Signing in…' : <>Sign in<Right /></>}
         </button>
       </form>
-    </AuthLayout>
+    </EntryLayout>
   )
 }
