@@ -82,6 +82,10 @@ class User(db.Model):
     staff_code = db.Column(db.Text, unique=True)
     phone = db.Column(db.Text)
     specialty = db.Column(db.Text)
+    # TB representatives: who they work for (Ministry of Health, an NGO, a county) and, if
+    # set, the one county whose hospitals they see. Empty county = every hospital.
+    organisation = db.Column(db.Text)
+    county = db.Column(db.Text)
     duty_status = db.Column(db.Text, nullable=False, server_default="on_duty", default="on_duty")
     is_active = db.Column(db.Boolean, nullable=False, server_default=text("true"), default=True)
     must_change_password = db.Column(db.Boolean, nullable=False, server_default=text("false"), default=False)
@@ -116,6 +120,8 @@ class User(db.Model):
                 else None
             ),
             "mustChangePassword": self.must_change_password,
+            "organisation": self.organisation,
+            "county": self.county,
         }
 
     def to_staff_dict(self):
@@ -127,6 +133,8 @@ class User(db.Model):
             "phone": self.phone,
             "role": self.role,
             "specialty": self.specialty,
+            "organisation": self.organisation,
+            "county": self.county,
             "duty": self.duty_status,
             "active": self.is_active,
             "hospital": self.facility.name if self.facility else None,
