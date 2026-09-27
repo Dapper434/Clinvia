@@ -11,6 +11,9 @@ import {
   uploadMyFileApi,
 } from '../api/portal.js'
 import AdherenceCalendar from '../components/patients/AdherenceCalendar.jsx'
+import AssistantChat from '../components/patients/AssistantChat.jsx'
+import DosePopup from '../components/patients/DosePopup.jsx'
+import NearestClinic from '../components/patients/NearestClinic.jsx'
 import PrivacyNote from '../components/patients/PrivacyNote.jsx'
 import ReminderCard from '../components/patients/ReminderCard.jsx'
 import StatsCard from '../components/dashboard/StatsCard.jsx'
@@ -24,14 +27,12 @@ import {
   CheckCircle2,
   ChevronRight,
   FileUp,
-  FlaskConical,
   HeartPulse,
   Mail,
   Pill,
   Stethoscope,
 } from 'lucide-react'
 
-const LAB_RESULT_TONE = { positive: 'bad', abnormal: 'warning', negative: 'good', normal: 'good', pending: 'warning' }
 const FILE_TYPES = [['referral', 'Referral letter'], ['lab_report', 'Lab report'], ['prescription', 'Prescription'], ['xray', 'Chest X-ray'], ['discharge_summary', 'Discharge summary']]
 const card = 'rounded-3xl border border-gray-200 bg-white p-6 shadow-sm'
 const input = 'w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500'
@@ -179,7 +180,6 @@ export default function PatientPortal() {
   const patient = data.patient
   const today = data.today
   const doseLogs = data.doseLogs
-  const labResults = data.labResults
   const todayLog = doseLogs.find((d) => d.date === today)
   const adherence = data.adherence
   const risk = getRiskLevel(adherence ?? 0)
@@ -254,7 +254,6 @@ export default function PatientPortal() {
           </>
         ) : null}
         <StatsCard label="Appointments" value={upcoming.length} icon={CalendarPlus} tone="neutral" hint={upcoming[0] ? `Next: ${niceDate(upcoming[0].at)}` : 'None booked'} />
-        <StatsCard label="Lab Results" value={labResults.length} icon={FlaskConical} tone="neutral" hint={labResults.length ? `Latest: ${labResults[0].result}` : 'None recorded yet'} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -314,22 +313,6 @@ export default function PatientPortal() {
             ) : null}
           </div>
 
-          <div className={card}>
-            <h2 className="mb-4 text-lg font-bold text-gray-900">Lab results</h2>
-            {labResults.length ? (
-              <div className="space-y-2">
-                {labResults.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3">
-                    <div><p className="text-sm font-medium text-gray-900">{r.test}</p><p className="text-xs text-gray-500">{r.collected}</p></div>
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
-                      LAB_RESULT_TONE[r.result] === 'bad' ? 'bg-rose-100 text-rose-700' : LAB_RESULT_TONE[r.result] === 'good' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {r.result}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : <p className="text-sm text-gray-500">No lab results recorded yet.</p>}
-          </div>
         </div>
 
         <div className="space-y-6">
@@ -345,6 +328,8 @@ export default function PatientPortal() {
               </div>
             ) : <p className="mt-3 text-sm text-gray-500">No doctor assigned yet. Your clinic will link one to your record.</p>}
           </div>
+
+          <NearestClinic patient={patient} />
 
           {data.onTreatment ? <ReminderCard reminder={data.reminder} /> : null}
 
@@ -391,6 +376,11 @@ export default function PatientPortal() {
           <AdherenceCalendar treatmentStart={patient.treatment_start} doseLogs={doseLogs} />
         </div>
       ) : null}
+
+      {data.onTreatment ? (
+        <DosePopup doseTime={data.reminder?.doseTime} today={today} isLogged={Boolean(todayLog)} onCheckIn={checkIn} />
+      ) : null}
+      <AssistantChat />
     </div>
   )
 }
