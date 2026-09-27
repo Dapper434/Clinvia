@@ -10,7 +10,6 @@ export const badgesApi = () => apiClient('/api/badges')
 export const hospitalsApi = () => apiClient('/api/hospitals')
 export const hospitalOverviewApi = () => apiClient('/api/hospitals/overview')
 export const updateHospitalApi = (slug, body) => apiClient(`/api/hospitals/${slug}`, { method: 'PATCH', body })
-export const directoryApi = (params) => apiClient(`/api/directory${q(params)}`)
 
 export const staffApi = () => apiClient('/api/staff')
 export const staffProfileApi = (code) => apiClient(`/api/staff/${code}`)
