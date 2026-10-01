@@ -39,13 +39,20 @@ Don't rename the role in code unless you're also writing the migration for it.
   `frontend/src/components/drawers/`, `backend/app/routes/patients.py`, `backend/app/clinical.py`.
 
 ### TB representative (`network_admin`)
-- Has no hospital. Sees every hospital, one at a time (`X-Hospital` header) or combined (`all`).
-  See `scope_ids()` in `backend/app/auth.py`.
-- Network overview (`/network`), cross-network people directory (`/directory`), and can suspend a hospital.
-- Reads clinical records, dose logs and reports, and exports them. Manages staff and hospital settings.
-- **Can't** register patients or log doses. Those need one hospital, and they belong to its staff.
-- Code: `frontend/src/pages/staff/Network.jsx`, `Directory.jsx`, `backend/app/routes/hospitals.py`,
-  `backend/app/lookups.py`, and the `isNetwork` / `scope` values in `frontend/src/context/AuthContext.jsx`.
+- Works for the Ministry of Health, a county health department or an NGO. Each account has an
+  `organisation` and, optionally, a `county`.
+- **Numbers and percentages only.** They never see a patient's or a staff member's name, P-code or
+  S-code. They get: the overview (`/network`) with counts and percentages per hospital, the
+  dashboard in its counts-only form, the case map as unnamed dots, reports, and the summary CSV
+  (`/api/exports/summary.csv`).
+- **Scope:** with no county, every hospital; with a county, only that county's hospitals
+  (`representative_hospitals()` in `backend/app/auth.py`). Within that, one hospital at a time
+  (`X-Hospital` header) or combined (`all`).
+- **Can't** open patient records, staff lists, the dose log, appointments, the queue or admissions,
+  export named CSVs, manage staff, or change or suspend hospitals. Hospitals run themselves.
+- New accounts: `flask add-tb-representative` (there is no sign-up for this role).
+- Code: `frontend/src/pages/staff/Network.jsx`, `backend/app/routes/hospitals.py`,
+  `backend/app/metrics.py`, and the `isNetwork` / `scope` values in `frontend/src/context/AuthContext.jsx`.
 
 ## Supporting roles
 

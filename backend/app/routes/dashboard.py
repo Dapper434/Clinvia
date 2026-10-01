@@ -146,6 +146,7 @@ def dashboard():
             "doctors": len(doctors),
             "doctorsOnDuty": sum(1 for d in doctors if d.duty_status == "on_duty"),
             "doctorsOnLeave": [d.full_name for d in doctors if d.duty_status == "on_leave"],
+            "doctorsOnLeaveCount": sum(1 for d in doctors if d.duty_status == "on_leave"),
         },
         "schedule": schedule,
         "queue": queue,
@@ -164,6 +165,17 @@ def dashboard():
             d["seen"] += row["status"] == "completed"
         payload["schedule"] = []
         payload["scheduleByDoctor"] = sorted(per.values(), key=lambda d: -d["booked"])
+    if role == "network_admin":
+        # The TB representative sees numbers only: appointments per hospital, no patient
+        # or staff names (not even the doctors on leave).
+        per = {}
+        for row in schedule:
+            h = per.setdefault(row["hospital"], {"hospital": row["hospital"], "booked": 0, "seen": 0})
+            h["booked"] += 1
+            h["seen"] += row["status"] == "completed"
+        payload["schedule"] = []
+        payload["scheduleByHospital"] = sorted(per.values(), key=lambda h: -h["booked"])
+        payload["stats"]["doctorsOnLeave"] = []
 
     att = attention(scope, today, doctor_id)
     if clinical:

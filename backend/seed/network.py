@@ -8,11 +8,26 @@ BASE_DOMAIN = "clinvia.health"
 NETWORK_DOMAIN = BASE_DOMAIN
 PATIENT_DOMAIN = f"patient.{BASE_DOMAIN}"
 
+# TB representatives (role `network_admin`): government and NGO users who see numbers only.
+# The national one oversees every hospital; a county one only its county's hospitals.
+# Names are made up; they are not real officials.
 NETWORK_ADMIN = {
     "local": "admin",
     "name": "Evelyn Odhiambo",
     "specialty": "TB programme",
+    "organisation": "Ministry of Health, National TB Programme",
+    "county": None,
 }
+
+COUNTY_REPRESENTATIVES = [
+    {
+        "local": "kiambu.tb",
+        "name": "Joseph Kinyanjui",
+        "specialty": "County TB coordinator",
+        "organisation": "Kiambu County Department of Health",
+        "county": "Kiambu",
+    },
+]
 
 # Accounts that existed before tenancy are carried over rather than duplicated.
 LEGACY_EMAILS = {

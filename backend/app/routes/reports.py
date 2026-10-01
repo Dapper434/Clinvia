@@ -1,13 +1,11 @@
 import csv
 import io
-from datetime import date, timedelta
+from datetime import timedelta
 
 from flask import Blueprint, Response, abort, g, jsonify, request
-from sqlalchemy import select
 
-from ..auth import authenticate_token, can, is_network_view, require, scope_ids
+from ..auth import authenticate_token, can, require, scope_ids
 from ..clinical import (
-    active_episodes,
     adherence,
     band,
     clinic_today,
@@ -17,7 +15,8 @@ from ..clinical import (
 )
 from ..extensions import db
 from ..lookups import names_by_id
-from ..models import Admission, Appointment, Bed, DoseLog, Facility, Patient, TbEpisode, Ward
+from ..metrics import SUMMARY_COLUMNS, hospital_metrics
+from ..models import Admission, Appointment, DoseLog, Facility, Patient, TbEpisode, Ward
 
 bp = Blueprint("reports", __name__, url_prefix="/api")
 
@@ -123,6 +122,7 @@ def reports():
             "episodes": len(episodes),
         },
         "canExport": can(g.current_user.role, "reports.export"),
+        "canSummary": can(g.current_user.role, "reports.summary"),
     })
 
 
@@ -133,6 +133,20 @@ def _csv(filename, header, rows):
     w.writerows(rows)
     return Response(buf.getvalue(), mimetype="text/csv",
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+@bp.get("/exports/summary.csv")
+@authenticate_token
+@require("reports.summary")
+def export_summary():
+    """One row per hospital in scope, numbers and percentages only — no names of people."""
+    today = clinic_today()
+    hospitals = Facility.query.filter(Facility.id.in_(scope_ids())).order_by(Facility.name).all()
+    rows = []
+    for f in hospitals:
+        m = hospital_metrics(f, today)
+        rows.append(["" if (v := get(f, m)) is None else v for _, get in SUMMARY_COLUMNS])
+    return _csv(f"clinvia-summary-{today.isoformat()}.csv", [name for name, _ in SUMMARY_COLUMNS], rows)
 
 
 @bp.get("/exports/<kind>.csv")

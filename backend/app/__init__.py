@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
+import click
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -61,6 +62,37 @@ def create_app():
         from .reminders import send_due_reminders
 
         print(send_due_reminders())
+
+    @app.cli.command("add-tb-representative")
+    @click.option("--email", prompt=True, help="Must be at the network domain, e.g. name@clinvia.health")
+    @click.option("--name", prompt="Full name", help="Full name shown in the app")
+    @click.option("--organisation", prompt=True, help="e.g. Ministry of Health, National TB Programme")
+    @click.option("--county", default="", prompt="County (leave empty for every hospital)", help="Limit to one county")
+    @click.option("--title", default="TB programme", prompt=True, help="Job title")
+    @click.password_option()
+    def add_tb_representative(email, name, organisation, county, title, password):
+        """Create a TB representative (Ministry of Health, county or NGO). They see numbers only."""
+        from .auth import hash_password, password_problem
+        from .models import Profile, User
+
+        email = email.strip().lower()
+        domain = app.config["NETWORK_EMAIL_DOMAIN"]
+        if not email.endswith("@" + domain):
+            raise SystemExit(f"The email must end in @{domain}.")
+        if User.query.filter_by(email=email).first():
+            raise SystemExit("An account with that email already exists.")
+        problem = password_problem(password)
+        if problem:
+            raise SystemExit(problem)
+        u = User(email=email, password_hash=hash_password(password), role="network_admin", full_name=name.strip(),
+                 organisation=organisation.strip() or None, county=county.strip() or None, specialty=title.strip() or None)
+        db.session.add(u)
+        db.session.flush()
+        u.staff_code = db.session.execute(db.text("SELECT next_staff_code()")).scalar()
+        db.session.merge(Profile(id=u.id, full_name=u.full_name, role="network_admin"))
+        db.session.commit()
+        scope = f"hospitals in {u.county} County" if u.county else "every hospital"
+        print(f"Created {u.full_name} ({u.staff_code}), {u.organisation}: sees numbers for {scope}.")
 
     @app.cli.command("seed-network")
     def seed_network_command():
