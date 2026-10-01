@@ -32,7 +32,7 @@ export function isPatientRole(role) {
 }
 
 export function isAdminRole(role) {
-  return role === 'admin' || role === 'network_admin'
+  return role === 'admin'
 }
 
 export function homePathForRole(role) {

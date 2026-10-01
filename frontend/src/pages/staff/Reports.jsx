@@ -74,6 +74,18 @@ export default function Reports() {
           ) : <div className="empty">No wards set up yet.</div>}
         </section>
       </div>
+      {r.canSummary ? (
+        <section className="panel">
+          <div className="panel-h"><h3>Summary by hospital</h3><span>Numbers and percentages only, no names</span></div>
+          <div className="rows">
+            <div className="row">
+              <div className="ficon">CSV</div>
+              <div><p>Hospital summary</p><small>Patients, TB treatment, adherence, treatment success, beds and appointments for each hospital</small></div>
+              <button type="button" className="btn" onClick={() => download('summary')}>Download</button>
+            </div>
+          </div>
+        </section>
+      ) : null}
       {r.canExport ? (
         <section className="panel">
           <div className="panel-h"><h3>Exports</h3><span>CSV files open in Excel or Google Sheets</span></div>

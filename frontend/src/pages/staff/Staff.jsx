@@ -11,15 +11,13 @@ import { roleLabel } from '../../utils/roles.js'
 const DUTY = { on_duty: 'On duty', off_duty: 'Off duty', on_leave: 'On leave' }
 
 export default function Staff() {
-  const { scope, isNetwork, user } = useAuth()
+  const { scope, user } = useAuth()
   const { openDrawer, version, toast, bump } = useShell()
   const { data: s, error, reload } = useApi(staffApi, [scope, version])
-  const pickHospitalFirst = isNetwork && scope === 'all'
   const manage = s?.canManage
 
   const actions = manage ? (
-    <button type="button" className="btn primary" disabled={pickHospitalFirst} title={pickHospitalFirst ? 'Choose a hospital in the sidebar first' : undefined}
-      onClick={() => openDrawer('staff', { domain: s.domain })}>
+    <button type="button" className="btn primary" onClick={() => openDrawer('staff', { domain: s.domain })}>
       <Plus />Add staff account
     </button>
   ) : null
@@ -41,7 +39,6 @@ export default function Staff() {
     <Page title="Staff" sub={`${s.rows.length} accounts`} actions={actions}>
       <p className="lead">
         {manage ? 'Staff accounts are created here — there is no public sign-up. ' : ''}Duty status controls who can be booked and who appears in the queue.
-        {pickHospitalFirst && manage ? ' Choose a hospital in the sidebar to add someone.' : ''}
       </p>
       <Stats four>
         <Stat label="Doctors on duty" value={st.doctorsOnDuty} note={`of ${st.doctors} doctors`} />

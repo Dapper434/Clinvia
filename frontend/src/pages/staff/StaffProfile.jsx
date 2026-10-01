@@ -66,12 +66,14 @@ export default function StaffProfile() {
         <dl className="facts">
           <div><dt>Email</dt><dd>{s.email}</dd></div>
           <div><dt>Phone</dt><dd>{s.phone || '—'}</dd></div>
-          <div><dt>Specialty</dt><dd>{s.specialty || '—'}</dd></div>
+          <div><dt>{s.organisation ? 'Title' : 'Specialty'}</dt><dd>{s.specialty || '—'}</dd></div>
+          {s.organisation ? <div><dt>Organisation</dt><dd>{s.organisation}</dd></div> : null}
+          {s.role === 'network_admin' ? <div><dt>Area</dt><dd>{s.county ? `${s.county} County` : 'All hospitals'}</dd></div> : null}
           {s.lastLogin !== undefined ? <div><dt>Last signed in</dt><dd>{s.lastLogin ? new Date(s.lastLogin).toLocaleString() : 'Not yet'}</dd></div> : null}
         </dl>
       </section>
 
-      <div className="grid g-1-1">
+      {can('patients.view') ? <div className="grid g-1-1">
         <section className="panel">
           <div className="panel-h"><h3>{s.isMe ? 'My patients' : 'Assigned patients'}</h3><span>{plural(s.patientCount, 'patient')}</span></div>
           {s.patients.length ? (
@@ -102,7 +104,7 @@ export default function StaffProfile() {
             </tbody></table></div>
           ) : <Empty>No appointments today.</Empty>}
         </section>
-      </div>
+      </div> : null}
     </Page>
   )
 }

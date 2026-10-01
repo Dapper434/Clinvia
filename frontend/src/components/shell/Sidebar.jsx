@@ -8,7 +8,6 @@ import {
   NavAdmissions,
   NavAppointments,
   NavDashboard,
-  NavDirectory,
   NavDoses,
   NavMap,
   NavNetwork,
@@ -22,7 +21,7 @@ import { useShell } from './shellContext.js'
 const GROUPS = [
   {
     items: [
-      { to: '/network', label: 'Network', icon: NavNetwork, cap: 'network.view' },
+      { to: '/network', label: 'Overview', icon: NavNetwork, cap: 'network.view' },
       { to: '/dashboard', label: 'Dashboard', icon: NavDashboard, cap: 'dashboard.view', badge: 'attention' },
       { to: '/patients', label: 'Patients', icon: NavPatients, cap: 'patients.view' },
       { to: '/appointments', label: 'Appointments', icon: NavAppointments, cap: 'appointments.view', also: ['/queue'] },
@@ -41,7 +40,6 @@ const GROUPS = [
     title: 'Management',
     items: [
       { to: '/staff', label: 'Staff', icon: NavStaff, cap: 'staff.view' },
-      { to: '/directory', label: 'People', icon: NavDirectory, cap: 'network.view' },
       { to: '/settings', label: 'Hospital settings', icon: NavSettings, cap: 'hospital.settings', notNetwork: true },
     ],
   },
@@ -75,7 +73,8 @@ export default function Sidebar() {
     }
   }, [isNetwork, version])
 
-  const current = isNetwork ? hospitals.find((h) => h.slug === scope)?.name ?? 'All hospitals' : user?.hospital?.name
+  const everywhere = user?.county ? `All of ${user.county} County` : 'All hospitals'
+  const current = isNetwork ? hospitals.find((h) => h.slug === scope)?.name ?? everywhere : user?.hospital?.name
 
   return (
     <aside className={`side${menuOpen ? ' open' : ''}`} aria-label="Main navigation">
@@ -93,7 +92,7 @@ export default function Sidebar() {
         <div className="field" style={{ padding: '0 8px' }}>
           <label htmlFor="scope">Viewing</label>
           <select id="scope" value={scope} onChange={(e) => setScope(e.target.value)}>
-            <option value="all">All hospitals</option>
+            <option value="all">{everywhere}</option>
             {hospitals.map((h) => (
               <option key={h.slug} value={h.slug}>
                 {h.name}
@@ -134,6 +133,7 @@ export default function Sidebar() {
             {roleLabel(user?.role)}
             {user?.code ? `, ${user.code}` : ''}
           </span>
+          {user?.organisation ? <span>{user.organisation}</span> : null}
         </Link>
         <button type="button" className="link" style={{ marginTop: 8, fontSize: 12.5 }} onClick={signOut}>
           Sign out

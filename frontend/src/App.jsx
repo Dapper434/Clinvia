@@ -27,7 +27,6 @@ const Reports = lazy(() => import('./pages/staff/Reports.jsx'))
 const Staff = lazy(() => import('./pages/staff/Staff.jsx'))
 const StaffProfile = lazy(() => import('./pages/staff/StaffProfile.jsx'))
 const Network = lazy(() => import('./pages/staff/Network.jsx'))
-const Directory = lazy(() => import('./pages/staff/Directory.jsx'))
 const HospitalSettings = lazy(() => import('./pages/staff/HospitalSettings.jsx'))
 const PatientPortal = lazy(() => import('./pages/PatientPortal.jsx'))
 const MyProfilePatient = lazy(() => import('./pages/patient/MyProfile.jsx'))
@@ -67,7 +66,7 @@ export default function App() {
         <Route element={<StaffRoute />}>
           <Route element={<AppShell />}>
             <Route path="/network" element={guarded('network.view', <Network />)} />
-            <Route path="/directory" element={guarded('network.view', <Directory />)} />
+            <Route path="/directory" element={<Navigate to="/network" replace />} />
             <Route path="/dashboard" element={guarded('dashboard.view', <Dashboard />)} />
             <Route path="/patients" element={guarded('patients.view', <Patients />)} />
             <Route path="/patients/new" element={guarded('patients.register', <RegisterPatient />)} />
