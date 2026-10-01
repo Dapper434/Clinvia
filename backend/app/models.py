@@ -29,6 +29,18 @@ LAB_TESTS = (
 )
 LAB_RESULTS = ("positive", "negative", "normal", "abnormal", "pending")
 
+from .prescribing import (  # noqa: E402  (vocabularies the check constraints below build on)
+    DIAGNOSIS_BASES,
+    EPTB_SITES,
+    RESISTANCE_LEVELS,
+    TB_SITES,
+    TREATMENT_HISTORIES,
+)
+
+
+def _in_check(column, values):
+    return column + " IN (" + ", ".join(f"'{v}'" for v in values) + ")"
+
 
 class Facility(db.Model):
     """A hospital. Each one is its own tenant: its staff only ever see its records."""
@@ -170,6 +182,12 @@ class Patient(db.Model):
     age = db.Column(db.Integer)
     gender = db.Column(db.Text)
     phone = db.Column(db.Text)
+    # Where to reach the patient. Separate from the portal account's sign-in address: a
+    # patient can have one without the other.
+    email = db.Column(db.Text)
+    # Latest recorded weight; TB doses are worked out from it, so it is re-checked at visits.
+    weight_kg = db.Column(db.Numeric(5, 1))
+    weight_taken_on = db.Column(db.Date)
     address = db.Column(db.Text)
     lat = db.Column(db.Float)
     lng = db.Column(db.Float)
@@ -180,6 +198,8 @@ class Patient(db.Model):
     # Local wall-clock time (APP_TIMEZONE) the doctor wants the daily dose taken; null = default.
     dose_time = db.Column(db.Time)
     last_reminder_sent_on = db.Column(db.Date)
+    # Voice of the patient's reminders (see reminder_messages.STYLES); null = the default.
+    reminder_style = db.Column(db.Text)
 
     facility = db.relationship("Facility")
     assigned_doctor = db.relationship("User", foreign_keys=[assigned_doctor_id])
@@ -190,6 +210,9 @@ class Patient(db.Model):
     __table_args__ = (
         db.CheckConstraint("gender IN ('male', 'female', 'other')", name="patients_gender_check"),
         db.CheckConstraint("age IS NULL OR age BETWEEN 0 AND 120", name="patients_age_check"),
+        db.CheckConstraint(
+            "weight_kg IS NULL OR weight_kg BETWEEN 0.5 AND 400", name="patients_weight_check"
+        ),
         db.Index("patients_user_id_idx", "user_id"),
         db.Index("patients_facility_idx", "facility_id"),
     )
@@ -214,6 +237,9 @@ class Patient(db.Model):
             "age": self.age,
             "gender": self.gender,
             "phone": self.phone,
+            "email": self.email,
+            "weight": float(self.weight_kg) if self.weight_kg is not None else None,
+            "weightTakenOn": _iso(self.weight_taken_on),
             "address": self.address,
             "facility": self.facility.name if self.facility else None,
             "lat": self.lat,
@@ -244,10 +270,19 @@ class TbEpisode(db.Model):
     id = db.Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     patient_id = db.Column(UUID(as_uuid=False), db.ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
     tb_type = db.Column(db.Text, nullable=False)
+    # Which organ, when the disease is outside the lungs — the brain and the spine are
+    # treated for twelve months rather than six.
+    eptb_site = db.Column(db.Text)
+    diagnosis_basis = db.Column(db.Text, nullable=False, server_default="bacteriological")
+    treatment_history = db.Column(db.Text, nullable=False, server_default="new")
+    # What drug-susceptibility testing showed; this is what picks the regimen.
+    resistance = db.Column(db.Text, nullable=False, server_default="susceptible")
     regimen = db.Column(db.Text, nullable=False)
     treatment_start = db.Column(db.Date, nullable=False)
     phase = db.Column(db.Text, nullable=False, default="intensive")
     status = db.Column(db.Text, nullable=False, default="active")
+    # Kept in step with `resistance` so the dashboard, the map and the reports can go on
+    # asking one question: is this patient drug-resistant?
     mdr_flag = db.Column(db.Boolean, nullable=False, default=False)
     outcome_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
@@ -255,7 +290,20 @@ class TbEpisode(db.Model):
     patient = db.relationship("Patient", back_populates="episodes")
 
     __table_args__ = (
-        db.CheckConstraint("tb_type IN ('pulmonary', 'extra_pulmonary')", name="tb_episodes_type_check"),
+        db.CheckConstraint(_in_check("tb_type", TB_SITES), name="tb_episodes_type_check"),
+        # An organ is only recorded when the disease is outside the lungs. Older episodes
+        # predate the field, so it stays optional.
+        db.CheckConstraint(
+            f"eptb_site IS NULL OR (tb_type = 'extra_pulmonary' AND {_in_check('eptb_site', EPTB_SITES)})",
+            name="tb_episodes_eptb_site_check",
+        ),
+        db.CheckConstraint(_in_check("diagnosis_basis", DIAGNOSIS_BASES), name="tb_episodes_basis_check"),
+        db.CheckConstraint(
+            _in_check("treatment_history", TREATMENT_HISTORIES), name="tb_episodes_history_check"
+        ),
+        db.CheckConstraint(
+            _in_check("resistance", RESISTANCE_LEVELS), name="tb_episodes_resistance_check"
+        ),
         db.CheckConstraint(
             "phase IN ('intensive', 'continuation', 'closed')", name="tb_episodes_phase_check"
         ),
@@ -276,6 +324,10 @@ class TbEpisode(db.Model):
         return {
             "id": self.id,
             "type": self.tb_type,
+            "eptbSite": self.eptb_site,
+            "diagnosis": self.diagnosis_basis,
+            "history": self.treatment_history,
+            "resistance": self.resistance,
             "regimen": self.regimen,
             "start": _iso(self.treatment_start),
             "phase": self.phase,
@@ -416,6 +468,9 @@ class Medication(db.Model):
     end_date = db.Column(db.Date)
     prescribed_by = db.Column(UUID(as_uuid=False), db.ForeignKey("users.id", ondelete="SET NULL"))
     active = db.Column(db.Boolean, nullable=False, default=True)
+    # Written by the TB regimen builder rather than typed in one drug at a time. Re-dosing
+    # after a weight change replaces these lines and leaves other prescriptions alone.
+    from_regimen = db.Column(db.Boolean, nullable=False, default=False, server_default="false")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
 
     __table_args__ = (db.Index("medications_patient_idx", "patient_id"),)
@@ -429,6 +484,7 @@ class Medication(db.Model):
             "start": _iso(self.start_date),
             "end": _iso(self.end_date),
             "active": self.active,
+            "fromRegimen": self.from_regimen,
         }
 
 

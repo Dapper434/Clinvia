@@ -29,6 +29,18 @@ from ..clinical import (
 )
 from ..extensions import db
 from ..lookups import body, doctor_brief, names_by_id, patient_brief, patient_or_404
+from ..prescribing import (
+    DIAGNOSIS_BASES,
+    EPTB_SITES,
+    FREQUENCIES,
+    REGIMENS,
+    RESISTANCE_LEVELS,
+    RESISTANT,
+    TB_SITES,
+    TREATMENT_HISTORIES,
+    dose_problem,
+    regimen_plan,
+)
 from ..models import (
     LAB_RESULTS,
     LAB_TESTS,
@@ -84,6 +96,59 @@ def _dose_time(value):
         return parse_time(value)
     except (ValueError, TypeError):
         abort(400, description="Use a dose time like 07:00.")
+
+
+def _email(value):
+    """A contact address, or None. Checked the same way the portal checks a sign-in."""
+    email = (value or "").strip().lower()
+    if not email:
+        return None
+    if "@" not in email or "." not in email.split("@")[-1]:
+        abort(400, description="Use a valid email address, like name@example.com.")
+    return email
+
+
+def _weight(value):
+    if value in (None, ""):
+        return None
+    try:
+        kg = round(float(value), 1)
+    except (TypeError, ValueError):
+        abort(400, description="Write the weight in kilograms, like 54 or 54.5.")
+    if not 0.5 <= kg <= 400:
+        abort(400, description="Use a weight in kilograms between 0.5 and 400.")
+    return kg
+
+
+def _classification(tb):
+    """Pull the WHO/NTLD-P classification out of a request, refusing anything unknown."""
+    site = tb.get("type") if tb.get("type") in TB_SITES else "pulmonary"
+    eptb_site = tb.get("eptbSite") or None
+    if site == "extra_pulmonary":
+        if eptb_site not in EPTB_SITES:
+            abort(400, description="Choose which organ the extra-pulmonary TB affects.")
+    else:
+        eptb_site = None
+    basis = tb.get("diagnosis") if tb.get("diagnosis") in DIAGNOSIS_BASES else "bacteriological"
+    history = tb.get("history") if tb.get("history") in TREATMENT_HISTORIES else "new"
+    resistance = tb.get("resistance")
+    if resistance is None:
+        # Older clients only knew about a rifampicin-resistant tick box.
+        resistance = "mdr" if tb.get("mdr") else "susceptible"
+    if resistance not in RESISTANCE_LEVELS:
+        abort(400, description="Choose what drug-susceptibility testing showed.")
+    return {
+        "tb_type": site, "eptb_site": eptb_site, "diagnosis_basis": basis,
+        "treatment_history": history, "resistance": resistance,
+    }
+
+
+def _plan_for(p, episode):
+    """What the classification and the patient's weight say to prescribe."""
+    return regimen_plan(
+        site=episode.tb_type, eptb_site=episode.eptb_site, resistance=episode.resistance,
+        age=p.age, weight_kg=p.weight_kg,
+    )
 
 
 def _filter(q, name, today):
@@ -225,9 +290,13 @@ def register():
         db.session.flush()
         db.session.merge(Profile(id=user.id, full_name=name, role="patient"))
 
+    weight = _weight(data.get("weight"))
     p = Patient(
         name=name, age=age, gender=data.get("gender") if data.get("gender") in ("male", "female", "other") else None,
         phone=(data.get("phone") or "").strip() or None, address=(data.get("address") or "").strip() or None,
+        # A portal account's address doubles as the contact address unless another is given.
+        email=_email(data.get("email")) or (email if portal else None),
+        weight_kg=weight, weight_taken_on=clinic_today() if weight is not None else None,
         facility_id=facility_id, lat=f.lat, lng=f.lng, registered_by=g.current_user.id,
         assigned_doctor_id=doctor.id if doctor else None, user_id=user.id if user else None,
         portal_link_code=None if user else new_link_code(),
@@ -245,12 +314,19 @@ def register():
 
 def _start_episode(p, tb):
     start = parse_date(tb.get("start")) or clinic_today()
-    mdr = bool(tb.get("mdr"))
-    tb_type = tb.get("type") if tb.get("type") in ("pulmonary", "extra_pulmonary") else "pulmonary"
     if TbEpisode.query.filter_by(patient_id=p.id, status="active").first():
         abort(400, description="This patient is already on TB treatment.")
-    e = TbEpisode(patient_id=p.id, tb_type=tb_type, regimen=tb.get("regimen") or ("BPaLM" if mdr else "2HRZE/4HR"),
-                  treatment_start=start, phase="intensive", status="active", mdr_flag=mdr)
+    c = _classification(tb)
+    # The regimen follows from the classification; a caller may only override it with one
+    # of the regimens the programme actually runs.
+    asked = tb.get("regimen")
+    derived = regimen_plan(
+        site=c["tb_type"], eptb_site=c["eptb_site"], resistance=c["resistance"], age=p.age,
+    )["regimen"]
+    if asked and asked not in REGIMENS:
+        abort(400, description="That is not a regimen this programme runs.")
+    e = TbEpisode(patient_id=p.id, **c, regimen=asked or derived, treatment_start=start,
+                  phase="intensive", status="active", mdr_flag=c["resistance"] in RESISTANT)
     db.session.add(e)
     return e
 
@@ -274,6 +350,8 @@ def _record(p):
         "patient": {
             **patient_brief(p),
             "address": p.address,
+            "weight": float(p.weight_kg) if p.weight_kg is not None else None,
+            "weightTakenOn": p.weight_taken_on.isoformat() if p.weight_taken_on else None,
             "facility": p.facility.name if p.facility else None,
             "registered": local(p.created_at).date().isoformat(),
             "portalLinkCode": p.portal_link_code if p.user_id is None else None,
@@ -317,8 +395,9 @@ def _record(p):
                 "logged": len(vals),
                 "byPatient": sum(1 for t, s in vals if t and s == "patient_portal"),
                 "day": (today - e.treatment_start).days + 1,
-                "regimenDays": REGIMEN_DAYS,
+                "regimenDays": REGIMENS[e.regimen]["total_days"] or REGIMEN_DAYS,
             }
+            out["regimenPlan"] = _plan_for(p, e)
         meds = Medication.query.filter_by(patient_id=p.id, active=True).order_by(Medication.drug_name).all()
         out["medications"] = [m.to_dict() for m in meds]
         labs = LabResult.query.filter_by(patient_id=p.id).order_by(LabResult.collected_at.desc(), LabResult.created_at.desc()).all()
@@ -377,6 +456,15 @@ def update(code):
     for key in ("phone", "address"):
         if key in data:
             setattr(p, key, (data.get(key) or "").strip() or None)
+    if "email" in data:
+        p.email = _email(data.get("email"))
+    if "weight" in data:
+        weight = _weight(data.get("weight"))
+        # A new weight can move the patient into another dosing band, so remember when
+        # it was taken; the record shows the date next to the TB doses.
+        if weight != (float(p.weight_kg) if p.weight_kg is not None else None):
+            p.weight_taken_on = clinic_today() if weight is not None else None
+        p.weight_kg = weight
     if "doctorCode" in data or "doseTime" in data:
         if not can(g.current_user.role, "patients.care"):
             return jsonify({"error": "Only doctors, clinicians and administrators change the care team."}), 403
@@ -501,12 +589,103 @@ def prescribe(code):
     drug, dose, freq = ((data.get(k) or "").strip() for k in ("drug", "dose", "freq"))
     if not drug or not dose or not freq:
         return jsonify({"error": "Add the drug, the dose and how often it's taken."}), 400
+    problem = dose_problem(dose)
+    if problem:
+        return jsonify({"error": problem}), 400
+    start = parse_date(data.get("start")) or clinic_today()
+    end = parse_date(data.get("end"))
+    if end and end < start:
+        return jsonify({"error": "The end date can't come before the start date."}), 400
     m = Medication(patient_id=p.id, drug_name=drug, dose=dose, frequency=freq,
-                   start_date=parse_date(data.get("start")) or clinic_today(), end_date=parse_date(data.get("end")),
+                   start_date=start, end_date=end,
                    prescribed_by=g.current_user.id, active=True)
     db.session.add(m)
     db.session.commit()
     return jsonify(m.to_dict()), 201
+
+
+@bp.get("/prescribing/regimen")
+@authenticate_token
+@require("tb.manage")
+def regimen_preview():
+    """What a classification would imply, for the forms that haven't saved anything yet."""
+    args = request.args
+    site = args.get("site") if args.get("site") in TB_SITES else "pulmonary"
+    eptb_site = args.get("eptbSite") if args.get("eptbSite") in EPTB_SITES else None
+    resistance = args.get("resistance") if args.get("resistance") in RESISTANCE_LEVELS else "susceptible"
+    age, weight = None, None
+    try:
+        age = int(args["age"]) if args.get("age") else None
+        weight = float(args["weight"]) if args.get("weight") else None
+    except ValueError:
+        pass
+    plan = regimen_plan(
+        site=site, eptb_site=eptb_site if site == "extra_pulmonary" else None,
+        resistance=resistance, age=age, weight_kg=weight,
+    )
+    return jsonify({**plan, "frequencies": list(FREQUENCIES)})
+
+
+@bp.get("/patients/<code>/regimen")
+@authenticate_token
+@require("meds.write")
+def regimen(code):
+    """The exact lines this patient's classification and weight call for."""
+    p = patient_or_404(code)
+    e = p.active_episode
+    if not e:
+        return jsonify({"error": "This patient has no active TB treatment."}), 400
+    return jsonify({
+        **_plan_for(p, e),
+        "episodeRegimen": e.regimen,
+        "start": e.treatment_start.isoformat(),
+        "weight": float(p.weight_kg) if p.weight_kg is not None else None,
+        "frequencies": list(FREQUENCIES),
+    })
+
+
+@bp.post("/patients/<code>/regimen")
+@authenticate_token
+@require("meds.write")
+def prescribe_regimen(code):
+    """Write the whole regimen at once, from the lines the prescriber confirmed."""
+    p = patient_or_404(code)
+    e = p.active_episode
+    if not e:
+        return jsonify({"error": "This patient has no active TB treatment."}), 400
+    lines = body().get("lines")
+    if not isinstance(lines, list) or not lines:
+        return jsonify({"error": "There are no prescription lines to save."}), 400
+
+    start = e.treatment_start
+    saved = []
+    for line in lines:
+        drug, dose, freq = ((line.get(k) or "").strip() for k in ("drug", "dose", "freq"))
+        if not drug or not dose or not freq:
+            return jsonify({"error": "Every line needs a drug, a dose and how often it's taken."}), 400
+        problem = dose_problem(dose)
+        if problem:
+            return jsonify({"error": f"{drug}: {problem}"}), 400
+        try:
+            begins = start + timedelta(days=int(line.get("from") or 0))
+            days = line.get("days")
+            ends = begins + timedelta(days=int(days)) if days else None
+        except (TypeError, ValueError):
+            return jsonify({"error": f"{drug}: the dates on this line don't make sense."}), 400
+        saved.append(Medication(
+            patient_id=p.id, drug_name=drug, dose=dose, frequency=freq, start_date=begins,
+            end_date=ends, prescribed_by=g.current_user.id, from_regimen=True,
+            # A phase that starts later is still pending, not something being taken today.
+            active=begins <= clinic_today() and (ends is None or ends >= clinic_today()),
+        ))
+    # Re-dosing after a weight change replaces the lines the builder wrote last time;
+    # prescriptions typed in one at a time are left alone.
+    Medication.query.filter_by(patient_id=p.id, active=True, from_regimen=True).update(
+        {"active": False, "end_date": clinic_today()}, synchronize_session=False
+    )
+    db.session.add_all(saved)
+    db.session.commit()
+    return jsonify(_record(p)), 201
 
 
 @bp.patch("/medications/<med_id>")

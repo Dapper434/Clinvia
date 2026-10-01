@@ -8,6 +8,7 @@ import Page from '../../components/ui/Page.jsx'
 import { useApi } from '../../components/ui/useApi.js'
 import { useAuth } from '../../context/useAuth.js'
 import { addDays, band, cap, diffDays, dow, dt, fmt, fmtY, initials, plural } from '../../utils/format.js'
+import { eptbSiteLabel, historyLabel, resistanceLabel, siteLabel } from '../../utils/tbTerms.js'
 
 const FILE_LABEL = { prescription: 'Prescription', xray: 'Chest X-ray', lab_report: 'Lab report', referral: 'Referral letter', discharge_summary: 'Discharge summary' }
 const LAB_PILL = { positive: 'p-red', abnormal: 'p-amber', pending: 'p-done', negative: 'p-next', normal: 'p-next' }
@@ -90,7 +91,7 @@ export default function PatientRecord() {
   const today = r.today
   const d = r.doses
   const streak = d?.streak || 0
-  const patient = { code: p.code, name: p.name, doctorCode: r.doctor?.code }
+  const patient = { code: p.code, name: p.name, doctorCode: r.doctor?.code, age: p.age, weight: p.weight }
   const book = (props = {}) => openDrawer('book', { patient, today, ...props })
 
   const upcoming = r.appointments.filter((a) => a.status === 'scheduled' && a.at.slice(0, 10) >= today)
@@ -98,6 +99,14 @@ export default function PatientRecord() {
   const meds = r.medications || []
   const labs = r.labs || []
   const files = r.files || []
+
+  // What the classification and the current weight say to prescribe, against what actually is.
+  const plan = r.regimenPlan
+  const onRegimen = meds.filter((m) => m.fromRegimen)
+  const planned = plan?.lines?.length ? plan.lines : null
+  const notPrescribed = active && planned && !onRegimen.length
+  const needsRedose = active && planned && onRegimen.length
+    && planned.some((l) => onRegimen.some((m) => m.drug === l.drug && m.dose !== l.dose))
 
   const actions = (
     <>
@@ -224,15 +233,22 @@ export default function PatientRecord() {
           <div className="avatar" aria-hidden="true">{initials(p.name)}</div>
           <div>
             <h2>{p.name}</h2>
-            <p className="ph-meta">{p.code}, {p.age}, {p.gender}{p.phone ? `, ${p.phone}` : ''}</p>
+            <p className="ph-meta">
+              {[p.code, p.age, p.gender, p.phone, p.email, p.weight ? `${p.weight} kg` : null]
+                .filter(Boolean).join(', ')}
+            </p>
             <div className="pills">
               {e ? (
                 <>
-                  <span className="pill p-next">{e.type === 'pulmonary' ? 'Pulmonary' : 'Extra-pulmonary'} TB</span>
+                  <span className="pill p-next">
+                    {e.type === 'extra_pulmonary' && e.eptbSite ? eptbSiteLabel(e.eptbSite) : siteLabel(e.type)} TB
+                  </span>
                   <span className="pill p-done">{e.regimen}{active ? `, ${e.phase} phase` : ', closed'}</span>
+                  {e.history && e.history !== 'new' ? <span className="pill p-amber">{historyLabel(e.history)}</span> : null}
+                  {e.diagnosis === 'clinical' ? <span className="pill p-done">Clinically diagnosed</span> : null}
                 </>
               ) : null}
-              {e && e.mdr ? <span className="pill p-red">Drug-resistant (MDR)</span> : null}
+              {e && e.mdr ? <span className="pill p-red">{resistanceLabel(e.resistance) || 'Drug-resistant (MDR)'}</span> : null}
               {adm ? <span className="pill p-amber">Admitted, {adm.ward}{adm.bed ? ` bed ${adm.bed}` : ''}</span> : null}
               {p.portal ? <PatientPill>Uses the patient portal</PatientPill> : null}
             </div>
@@ -247,6 +263,14 @@ export default function PatientRecord() {
               <div><dt>Treatment started</dt><dd>{fmtY(e.start)}</dd></div>
               <div><dt>Day of treatment</dt><dd>{d.day} of {d.regimenDays}</dd></div>
               <div><dt>Dose time</dt><dd>{doseTimeLabel(p.doseTime)}</dd></div>
+              <div>
+                <dt>Weight</dt>
+                <dd>
+                  {p.weight ? `${p.weight} kg` : 'Not recorded'}
+                  {r.regimenPlan?.band ? `, ${r.regimenPlan.band.label} band` : ''}
+                  {p.weightTakenOn ? <small> taken {fmt(p.weightTakenOn)}</small> : null}
+                </dd>
+              </div>
             </>
           ) : null}
         </dl>
@@ -279,6 +303,23 @@ export default function PatientRecord() {
           <p><b>{plural(r.alerts.pendingLabs.length, 'result')} pending:</b> {r.alerts.pendingLabs.map((l) => l.test).join(', ')}, collected {fmt(r.alerts.pendingLabs[0].collected)}.</p>
         </div>
       ) : null}
+      {active && can('meds.write') && (notPrescribed || needsRedose) ? (
+        <div className="alert amber">
+          <p>
+            {notPrescribed
+              ? <><b>No TB medication prescribed yet.</b> {plan.label} for {p.weight} kg works out to {planned.length} lines.</>
+              : <><b>The prescribed doses no longer match {first}&apos;s weight.</b> At {p.weight} kg, {plan.label} is {plan.band ? `${plan.band.tablets} tablets a day` : 'dosed differently'}.</>}
+          </p>
+          <button type="button" className="btn primary" onClick={() => openDrawer('prescribe', { patient, today, onTb: true })}>
+            {notPrescribed ? 'Prescribe the regimen' : 'Re-dose the regimen'}
+          </button>
+        </div>
+      ) : null}
+      {active && can('tb.manage') && plan?.warnings?.length ? (
+        <div className="alert amber">
+          {plan.warnings.map((w) => <p key={w}>{w}</p>)}
+        </div>
+      ) : null}
 
       {r.clinical ? (
         <>
@@ -289,7 +330,7 @@ export default function PatientRecord() {
                 <h3>Current medication</h3>
                 <span>
                   {meds.length ? plural(meds.length, 'drug') : ''}{' '}
-                  {meds.length && can('meds.write') ? <button type="button" className="link" onClick={() => openDrawer('prescribe', { patient, today })}>Add</button> : null}
+                  {meds.length && can('meds.write') ? <button type="button" className="link" onClick={() => openDrawer('prescribe', { patient, today, onTb: active })}>Add</button> : null}
                 </span>
               </div>
               {meds.length ? (
@@ -308,7 +349,7 @@ export default function PatientRecord() {
                   ))}
                 </div>
               ) : (
-                <Empty action={can('meds.write') ? <button type="button" className="btn" onClick={() => openDrawer('prescribe', { patient, today })}><Plus />Write prescription</button> : null}>
+                <Empty action={can('meds.write') ? <button type="button" className="btn" onClick={() => openDrawer('prescribe', { patient, today, onTb: active })}><Plus />Write prescription</button> : null}>
                   No active prescriptions.
                 </Empty>
               )}
