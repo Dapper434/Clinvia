@@ -7,6 +7,7 @@ import AppShell from './components/shell/AppShell.jsx'
 import { useAuth } from './context/useAuth.js'
 import ChangePassword from './pages/ChangePassword.jsx'
 import Login from './pages/Login.jsx'
+import Privacy from './pages/Privacy.jsx'
 import RegisterHospital from './pages/RegisterHospital.jsx'
 import SignUpPatient from './pages/SignUpPatient.jsx'
 import Welcome from './pages/Welcome.jsx'
@@ -52,6 +53,8 @@ export default function App() {
         <Route path="/signup/patient" element={<SignUpPatient />} />
         <Route path="/register-hospital" element={<RegisterHospital />} />
         <Route path="/password" element={<ChangePassword />} />
+        {/* Readable without signing in, so a patient can check before creating an account. */}
+        <Route path="/privacy" element={<Privacy />} />
 
         <Route element={<PatientRoute />}>
           <Route element={<PatientLayout />}>

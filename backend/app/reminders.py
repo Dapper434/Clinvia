@@ -6,7 +6,6 @@ patient whose dose time has passed today, who hasn't logged today's dose yet,
 and who hasn't already been reminded today. Runs are idempotent, so a delayed
 or repeated trigger never double-notifies anyone.
 """
-import hashlib
 import json
 from datetime import datetime, time
 from zoneinfo import ZoneInfo
@@ -16,22 +15,10 @@ from pywebpush import WebPushException, webpush
 
 from .extensions import db
 from .models import DoseLog, Patient, PushSubscription, TbEpisode
+from .reminder_messages import NOTIFICATION_TITLE, compose
 
 REMINDER_URL = "/my-treatment"
 
-# Kind, not shaming. A few gently restate real guidance (empty stomach, water).
-WITTY_MESSAGES = [
-    "Your pills called, {name}. They miss you. 💊",
-    "{name}, TB bacteria are hoping you forget today. Let's disappoint them.",
-    "Plot twist: today's hero takes their {time} dose on time. That's you, {name}.",
-    "One dose a day keeps the relapse away. Your {time} dose is ready, {name}.",
-    "Glass of water ✓ Pills ✓ Log it in Clinvia ✓. Three ticks, {name}. You've got this.",
-    "Quick one before breakfast, {name}: your TB meds work best on an empty stomach.",
-    "Streaks aren't just for apps, {name}. Keep yours alive. Take today's dose.",
-    "{name}, you've come this far. Today's dose is another step to done.",
-    "Knock knock. Who's there? Your {time} dose. Don't leave it waiting, {name}.",
-    "Small pill, big win. Take today's dose and tap it done in Clinvia, {name}.",
-]
 
 GONE_STATUSES = {404, 410}
 
@@ -53,12 +40,19 @@ def _friendly_time(t):
     return datetime.combine(datetime.today(), t).strftime("%-I:%M %p")
 
 
+def build_reminder(patient, day, streak=0):
+    """Discreet title and body in the patient's style. Varies day to day, stable within a day."""
+    return compose(
+        patient.reminder_style,
+        name=patient.name,
+        time_label=_friendly_time(effective_dose_time(patient)),
+        streak=streak,
+        seed=f"{patient.id}:{day.isoformat()}",
+    )
+
+
 def build_message(patient, day):
-    """Deterministic per patient per day: varies day to day, stable within a day."""
-    digest = hashlib.sha256(f"{patient.id}:{day.isoformat()}".encode()).hexdigest()
-    template = WITTY_MESSAGES[int(digest, 16) % len(WITTY_MESSAGES)]
-    first_name = (patient.name or "there").split(" ")[0]
-    return template.format(name=first_name, time=_friendly_time(effective_dose_time(patient)))
+    return build_reminder(patient, day)["body"]
 
 
 def push_enabled():
@@ -138,7 +132,7 @@ def send_due_reminders(now=None):
             summary["no_device"] += 1
             continue
 
-        if _deliver_to_user(patient.user_id, "Time for your TB medicine", build_message(patient, today), summary):
+        if _deliver_to_user(patient.user_id, NOTIFICATION_TITLE, build_message(patient, today), summary):
             patient.last_reminder_sent_on = today
             summary["reminded"] += 1
 

@@ -87,6 +87,30 @@ def miss_streak(log, today):
     return n
 
 
+def taken_streak(log, today):
+    """Doses taken in a row, counting back from today (or yesterday if today isn't logged yet)."""
+    d = today if today in log else today - timedelta(days=1)
+    n = 0
+    while d in log and log[d][0]:
+        n += 1
+        d -= timedelta(days=1)
+    return n
+
+
+def best_taken_streak(log):
+    """Longest run of consecutive days with a dose taken."""
+    best = run = 0
+    prev = None
+    for d in sorted(log):
+        if log[d][0]:
+            run = run + 1 if prev is not None and d - prev == timedelta(days=1) else 1
+            prev = d
+        else:
+            run, prev = 0, None
+        best = max(best, run)
+    return best
+
+
 def last_check_in(log):
     days = [d for d, (taken, source) in log.items() if taken and source == "patient_portal"]
     return max(days) if days else None

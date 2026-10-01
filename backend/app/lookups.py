@@ -49,6 +49,7 @@ def patient_brief(p):
         "age": p.age,
         "gender": p.gender,
         "phone": p.phone,
+        "email": p.email,
         "portal": p.user_id is not None,
     }
 

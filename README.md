@@ -46,6 +46,8 @@ Any hospital can register itself from the welcome page and starts with empty rec
 ### 📱 Patient portal
 Patients check in their daily dose, see their adherence, results, medication and appointments, book appointments, and upload documents. Anything a patient creates is shown in indigo on staff screens. A clinic gives each patient a link code to connect their portal account to their record.
 
+Where the portal asks a patient for something of their own — connecting their record, uploading a document — it says who can see it and links to `/privacy`, a plain-language page on what is held, who can open it and what a patient can ask for. That page describes what the system actually does, so it changes when the behaviour does.
+
 ### 🔔 Dose reminders
 Patients get a push notification at their dose time, even when Clinvia isn't open, as long as they haven't logged that day's dose. First-line TB medicine is taken once a day on an empty stomach, so the standard reminder time is 7:00 AM; the doctor can pick a different time.
 
