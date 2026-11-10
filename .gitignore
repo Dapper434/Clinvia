@@ -28,3 +28,9 @@ instance/
 .env
 .env.*
 !.env.example
+
+*.db
+*.db-*
+*.db.*
+*.sqlite
+*.sqlite3
