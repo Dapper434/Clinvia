@@ -7,6 +7,10 @@
 
 Clinvia helps hospitals and clinics manage patient care from one place, with tuberculosis case management, treatment adherence tracking, and epidemiological mapping as its core specialty today — and room to grow into a broader hospital management platform over time.
 
+## Repository notes
+
+The GitHub repository description still ends with a stray “If” from an earlier typo. That text is a GitHub setting, not a file in this repo — edit it on the repository page. The live API is `https://clinvia.onrender.com` (the leftover `tbtrack-ad20` Render service should be suspended).
+
 ---
 
 ## What it does
